@@ -20,7 +20,7 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
 
     std::cout<<"CPU DRIVER STARTED!" << std::endl;
 
-  	/* This table is used to transform nucleotide letters into numbers. */
+    /* This table is used to transform nucleotide letters into numbers. */
     int8_t nt_table[128] = {
       4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
       4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -40,6 +40,8 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
     unsigned maxContigSize = getMaxLength(contigs);
     unsigned maxReadSize = getMaxLength(reads);
     unsigned totalAlignments = contigs.size(); // assuming that read and contig vectors are same length
+
+    initialize_alignments(alignments, totalAlignments); // pinned memory allocation
 
     //bw: ssw uses a 5x5 scoring matrix ?!?! maybe for "ambiguous base?"
     //  but the header uses a 4x4 scoring matrix in the example. we will use the demo version.
