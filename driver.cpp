@@ -128,14 +128,15 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
 
     }
 
-    auto                          end  = NOW;
-    std::chrono::duration<double> diff = end - start;
-    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
 
     free(current_read_numeric);
     free(current_contig_numeric);
 
-    }
+    } //end parallel region
+    auto                          end  = NOW;
+    std::chrono::duration<double> diff = end - start;
+    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
+
     free(mata);
 }
 
