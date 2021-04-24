@@ -35,7 +35,7 @@ target_include_directories(program_gpu PUBLIC ${PROJECT_SOURCE_DIR})
 get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
 if(CMAKE_CUDA_COMPILER AND "CUDA" IN_LIST LANGUAGES)
     target_compile_features(program_gpu PRIVATE cxx_std_14)
-    target_compile_options(program_gpu PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp)
+    target_compile_options(program_gpu PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
 endif()
 
 add_custom_target(
