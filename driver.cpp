@@ -63,28 +63,36 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
       -3 -3 -3  1  0
        0  0  0  0  0
     */
+    auto start = NOW;
 
+   //#pragma omp parallel 
    //these are arrays of the numeric version of the sequences
    int8_t* current_read_numeric = (int8_t*)malloc(s1);
    int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
 
     //TODO: look for better more modern ways to loop through, but probably not necessary for real project as we will iterate differently.
+    // just kidding we might want openmp this version to see what many-core is up to.
+
     auto read_sequence_ptr = reads.begin();
     auto contig_sequence_ptr = contigs.begin();
 
-    auto start = NOW;
 
-    while (read_sequence_ptr != reads.end() && contig_sequence_ptr != contigs.end())
+
+    //while (read_sequence_ptr != reads.end() && contig_sequence_ptr != contigs.end())
+    //{
+    //auto  current_read = *read_sequence_ptr++;
+    //auto  current_contig = *contig_sequence_ptr++;
+
+    //#pragma omp for
+    for(int alignment_index=0; alignment_index<reads.size();++alignment_index)
     {
-      auto  current_read = *read_sequence_ptr++;
-      auto  current_contig = *contig_sequence_ptr++;
+      auto  current_read = *(read_sequence_ptr+alignment_index);
+      auto  current_contig = *(contig_sequence_ptr+alignment_index);
 
 
-
+      //TODO: THIS IS A BLOB THAT DOES 1 ALIGNMENT, IT SHOULD BE THE "WORK_STEAL KERNEL" FUNCTION
       const int32_t current_read_length = current_read.length();
       const int32_t current_contig_length = current_contig.length();
-
-
 
       //bleh, need to track the indicies, and not sure if both strings are equal length
       //just convert the data to the format ssw wants...
@@ -97,22 +105,26 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
         current_contig_numeric[i] = table[(int)current_contig[i]];
       }
 
+
       //create a ssw profile from init
-      //this creates the "query string that we want to match against"
 		  s_profile* p; //, *p_rc = 0; //we don't need the reverse compliment i assume.
       s_align* result;
       int32_t maskLen = current_read_length/2; //following the example, this is the mask length, used for suboptimal alignments ??
 
-      p = ssw_init(current_read_numeric,current_read_length,mat,n,2);
       //s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* mat, const int32_t n, const int8_t score_size);
+      // WTF is score_size? the demo code uses a hard 2, so will we.
+      p = ssw_init(current_read_numeric,current_read_length,mat,n,2);
 			result = ssw_align (p, current_contig_numeric, current_contig_length, startGap * -1, extendGap * -1, flag, filter, 0, maskLen);
 
-      //put results into the passed in table, but we can just ignore that for now to get some performance numbers...
+      //put results into the passed in table, but we can just relax that for now to get some optimistic performance numbers...
       //eg... alignments[i] = result;
 
       //destroy the result since ssw_init and ssw_align allocates something..
       align_destroy(result);
       init_destroy(p);
+
+      //end TODO.
+
     }
 
     auto                          end  = NOW;
@@ -202,9 +214,11 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
 
         auto start2 = NOW;
 
-        //BW NOTE: "its" will be very small, usually "1". It is iterating over the max alignments per device, that is,
-        //         each kernel launch is a very large number of alignments, <20,0000 by the hard coded value above.
+        //BW NOTE: "its" will be very small in testing, it is iterating over the max alignments per device, that is,
+        //         each kernel launch is a very large number of alignments, <20,000 by the hard coded value above.
         //         stringsPerIt is the total number of alignments divided by the number of iterations we will be looping through
+
+        //          in practice, there will be several million alignments
 
         for(int perGPUIts = 0; perGPUIts < its; perGPUIts++)
         {
