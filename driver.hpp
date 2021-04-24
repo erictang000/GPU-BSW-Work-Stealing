@@ -32,6 +32,10 @@ get_tot_gpu_mem(int id);
 void
 kernel_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor = 1.0);
 
+//just trying to get an apples-apples test of SSW, I still feel it might be outrageously slow.
+void
+cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor = 1.0);
+
 
 void
 kernel_driver_aa(std::vector<std::string> reads, std::vector<std::string> contigs, alignment_results *alignments, short scoring_matrix[], short openGap, short extendGap, float factor = 1.0);

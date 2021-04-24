@@ -6,12 +6,123 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/scan.h>
+#include <ssw.h>
 
 size_t gpu_bsw_driver::get_tot_gpu_mem(int id) {
   cudaDeviceProp prop;
   cudaErrchk(cudaGetDeviceProperties(&prop, id));
   return prop.totalGlobalMem;
 }
+
+void
+gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor = 1.0)
+{
+
+    std::cout<<"CPU DRIVER STARTED!" << std::endl;
+
+  	/* This table is used to transform nucleotide letters into numbers. */
+    int8_t nt_table[128] = {
+      4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 4, 4, 4,  3, 3, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
+      4, 4, 4, 4,  3, 3, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
+    };
+
+  	int8_t* table = nt_table;
+
+    //the SSW takes all positive Integers for the scores above, so adjust accordingly.
+    int32_t l,m,k,s1=67108864,n=5,filter=0,flag=0;
+    short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
+    unsigned maxContigSize = getMaxLength(contigs);
+    unsigned maxReadSize = getMaxLength(reads);
+    unsigned totalAlignments = contigs.size(); // assuming that read and contig vectors are same length
+
+    //bw: ssw uses a 5x5 scoring matrix ?!?! maybe for "ambiguous base?"
+    //  but the header uses a 4x4 scoring matrix in the example. we will use the demo version.
+    int8_t* mata = (int8_t*)calloc(25, sizeof(int8_t));
+    const int8_t* mat = mata;
+
+    // initialize scoring matrix for genome sequences --- more copy pasta, 
+    for (l = k = 0; (l < 4); ++l) {
+      for (m = 0; (m < 4); ++m) mata[k++] = l == m ? matchScore : misMatchScore;	/* weight_match : -weight_mismatch */
+      mata[k++] = 0; // ambiguous base
+    }
+    for (m = 0; (m < 5); ++m) mata[k++] = 0;
+
+    //by default we probably have a scoring matrix like below..
+    /*
+       1 -3 -3 -3  0
+      -3  1 -3 -3  0
+      -3 -3  1 -3  0
+      -3 -3 -3  1  0
+       0  0  0  0  0
+    */
+
+   //these are arrays of the numeric version of the sequences
+   int8_t* current_read_numeric = (int8_t*)malloc(s1);
+   int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+
+    //TODO: look for better more modern ways to loop through, but probably not necessary for real project as we will iterate differently.
+    auto read_sequence_ptr = reads.begin();
+    auto contig_sequence_ptr = contigs.begin();
+
+    auto start = NOW;
+
+    while (read_sequence_ptr != reads.end() && contig_sequence_ptr != contigs.end())
+    {
+      auto  current_read = *read_sequence_ptr++;
+      auto  current_contig = *contig_sequence_ptr++;
+
+
+
+      const int32_t current_read_length = current_read.length();
+      const int32_t current_contig_length = current_contig.length();
+
+
+
+      //bleh, need to track the indicies, and not sure if both strings are equal length
+      //just convert the data to the format ssw wants...
+      for(int i=0; i < current_read_length; ++i)
+      {
+        current_read_numeric[i] = table[(int)current_read[i]];
+      }
+      for(int i=0; i < current_contig_length; ++i)
+      {
+        current_contig_numeric[i] = table[(int)current_contig[i]];
+      }
+
+      //create a ssw profile from init
+      //this creates the "query string that we want to match against"
+		  s_profile* p; //, *p_rc = 0; //we don't need the reverse compliment i assume.
+      s_align* result;
+      int32_t maskLen = current_read_length/2; //following the example, this is the mask length, used for suboptimal alignments ??
+
+      p = ssw_init(current_read_numeric,current_read_length,mat,n,2);
+      //s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* mat, const int32_t n, const int8_t score_size);
+			result = ssw_align (p, current_contig_numeric, current_contig_length, startGap * -1, extendGap * -1, flag, filter, 0, maskLen);
+
+      //put results into the passed in table, but we can just ignore that for now to get some performance numbers...
+      //eg... alignments[i] = result;
+
+      //destroy the result since ssw_init and ssw_align allocates something..
+      align_destroy(result);
+      init_destroy(p);
+    }
+
+    auto                          end  = NOW;
+    std::chrono::duration<double> diff = end - start;
+    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
+
+    free(current_read_numeric);
+    free(current_contig_numeric);
+    free(mata);
+}
+
+
 void
 gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
 {
@@ -56,12 +167,15 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
         std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
         std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
 
-        int BLOCKS_l = alignmentsPerDevice;
-        if(my_cpu_id == deviceCount - 1)
+        int BLOCKS_l = alignmentsPerDevice;  //BW NOTE: alignments per device is the total number of alignments/device count. the last device gets all the carry over.
+        if(my_cpu_id == deviceCount - 1)     //         the next few variables reflects that.. the amount of gpu data allocated is the most it will do per iteration.
             BLOCKS_l += leftOver_device;
         unsigned leftOvers    = BLOCKS_l % its;
         unsigned stringsPerIt = BLOCKS_l / its;
         gpu_alignments gpu_data(stringsPerIt + leftOvers); // gpu mallocs
+
+        //BW TODO: these pointers to the results need to be controlled by the atomic queue
+        //         instead, these will be scoped into the loop below...
 
         short* alAbeg = alignments->ref_begin + my_cpu_id * alignmentsPerDevice;
         short* alBbeg = alignments->query_begin + my_cpu_id * alignmentsPerDevice;
@@ -85,6 +199,11 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
         float total_packing = 0;
 
         auto start2 = NOW;
+
+        //BW NOTE: "its" will be very small, usually "1". It is iterating over the max alignments per device, that is,
+        //         each kernel launch is a very large number of alignments, <20,0000 by the hard coded value above.
+        //         stringsPerIt is the total number of alignments divided by the number of iterations we will be looping through
+
         for(int perGPUIts = 0; perGPUIts < its; perGPUIts++)
         {
             auto packing_start = NOW;
@@ -110,6 +229,15 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
                 blocksLaunched = stringsPerIt;
             }
 
+
+            //BW TODO: Remove ABOVE, what we really want to do is
+            //         request a batch of work from the atomic queue
+            //         which should hold similar information, but really
+            //         just the pointers for beginAVec/endAVec, beginBVec/endBVec
+            //         as well as the results
+
+            //         sequencesA and sequencesB is always a subset of the input contigs/reads.
+
             std::vector<std::string> sequencesA(beginAVec, endAVec);
             std::vector<std::string> sequencesB(beginBVec, endBVec);
             long unsigned running_sum = 0;
@@ -119,6 +247,15 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
             long unsigned half_length_B = 0;
 
             auto start_cpu = NOW;
+
+            //BW NOTE: the above basically "splits out" the input data per device, then per iteration
+            //         per iteration gets split up per stream, but there are just 2.
+
+            //BW NOTE: offsetA/B_h, is an "offset array", this is essentially a scan that is stored
+            //         since we are always using 2 streams here, we actually "reset" this
+            //         scan at the end of the number of sequences being sent through that stream
+            //         there will also be a kernel launch per stream.
+            //         its primary use is for the mem copy operations i think...
 
             for(int i = 0; i < sequencesA.size(); i++)
             {
@@ -150,6 +287,10 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
             long unsigned offsetSumA = 0;
             long unsigned offsetSumB = 0;
 
+            //BW NOTE: strA and strB live in host memory, per thread, this is copying the sequences to there.
+            //         sequencesA and sequencesB was constructed at the beginning of the loop, it is all the 
+            //         query/ref sequences per iteration...
+
             for(int i = 0; i < sequencesA.size(); i++)
             {
                 char* seqptrA = strA + offsetSumA;
@@ -166,6 +307,9 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
             total_packing += packing_dur.count();
 
             asynch_mem_copies_htd(&gpu_data, offsetA_h, offsetB_h, strA, strA_d, strB, strB_d, half_length_A, half_length_B, totalLengthA, totalLengthB, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+
+
+            //BW NOTE: minSize is the lesser of the biggest query or reference string.
             unsigned minSize = (maxReadSize < maxContigSize) ? maxReadSize : maxContigSize;
             unsigned totShmem = 3 * (minSize + 1) * sizeof(short);
             unsigned alignmentPad = 4 + (4 - totShmem % 4);
@@ -209,6 +353,12 @@ gpu_bsw_driver::kernel_driver_dna(std::vector<std::string> reads, std::vector<st
 
             asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
 
+
+            //BW NOTE: ^^^ I think the biggest danger is just writing the results to the wrong place, but it is going to be basically pointers and counts to contigous memory above
+            //             so I think it's pretty safe to leave everything the same, i think the batch has to be less than 40k ?
+
+            //BW TODO: REMOVE THESE INCREMENTS. you also kind of know what they are implicitly, ^^ alaBeg + stringsPerIt * perGPUIts, without modifying where the pointers are pointing at.
+            //         What we want actually is to just check if there is more work to do via query to the atomic queue... can be part of a "while" condition at the top ofc.
                  alAbeg += stringsPerIt;
                  alBbeg += stringsPerIt;
                  alAend += stringsPerIt;

@@ -222,7 +222,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
   results_file.flush();
   results_file.close();
 
-  free_alignments(&results_test);
+  free_alignments(&results_test); //BW NOTE: these get allocated by kernel driver dna, there is enough info to do this outside/before the function call as well..
   long long int total_cells = 0;
   for(int l = 0; l < G_sequencesA.size(); l++){
     total_cells += G_sequencesA.at(l).size()*G_sequencesB.at(l).size();
