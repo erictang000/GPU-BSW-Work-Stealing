@@ -18,7 +18,7 @@ void
 gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
 {
 
-    std::cout<< "SSW CPU DRIVER STARTED w/" << omp_get_num_threads() << " threads!" << std::endl;
+    std::cout<< "SSW CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
 
     /* This table is used to transform nucleotide letters into numbers. */
     int8_t nt_table[128] = {
