@@ -65,7 +65,8 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
     */
     auto start = NOW;
 
-   //#pragma omp parallel 
+   #pragma omp parallel 
+   {
    //these are arrays of the numeric version of the sequences
    int8_t* current_read_numeric = (int8_t*)malloc(s1);
    int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
@@ -83,7 +84,7 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
     //auto  current_read = *read_sequence_ptr++;
     //auto  current_contig = *contig_sequence_ptr++;
 
-    //#pragma omp for
+    #pragma omp for
     for(int alignment_index=0; alignment_index<reads.size();++alignment_index)
     {
       auto  current_read = *(read_sequence_ptr+alignment_index);
@@ -133,6 +134,8 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
 
     free(current_read_numeric);
     free(current_contig_numeric);
+
+    }
     free(mata);
 }
 
