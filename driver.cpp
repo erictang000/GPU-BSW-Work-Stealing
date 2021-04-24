@@ -71,13 +71,8 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
    int8_t* current_read_numeric = (int8_t*)malloc(s1);
    int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
 
-    //TODO: look for better more modern ways to loop through, but probably not necessary for real project as we will iterate differently.
-    // just kidding we might want openmp this version to see what many-core is up to.
-
     auto read_sequence_ptr = reads.begin();
     auto contig_sequence_ptr = contigs.begin();
-
-
 
     //while (read_sequence_ptr != reads.end() && contig_sequence_ptr != contigs.end())
     //{
@@ -95,7 +90,6 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
       const int32_t current_read_length = current_read.length();
       const int32_t current_contig_length = current_contig.length();
 
-      //bleh, need to track the indicies, and not sure if both strings are equal length
       //just convert the data to the format ssw wants...
       for(int i=0; i < current_read_length; ++i)
       {
@@ -105,7 +99,6 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
       {
         current_contig_numeric[i] = table[(int)current_contig[i]];
       }
-
 
       //create a ssw profile from init
 		  s_profile* p; //, *p_rc = 0; //we don't need the reverse compliment i assume.
