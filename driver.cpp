@@ -6,7 +6,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/scan.h>
-#include <ssw.h>
+#include "ssw.h"
 
 size_t gpu_bsw_driver::get_tot_gpu_mem(int id) {
   cudaDeviceProp prop;
