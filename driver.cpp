@@ -15,7 +15,7 @@ size_t gpu_bsw_driver::get_tot_gpu_mem(int id) {
 }
 
 void
-gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor = 1.0)
+gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
 {
 
     std::cout<<"CPU DRIVER STARTED!" << std::endl;
