@@ -18,7 +18,7 @@ void
 gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
 {
 
-    std::cout<<"CPU DRIVER STARTED!" << std::endl;
+    std::cout<< "SSW CPU DRIVER STARTED w/" << omp_get_num_threads() << " threads!" << std::endl;
 
     /* This table is used to transform nucleotide letters into numbers. */
     int8_t nt_table[128] = {
@@ -83,9 +83,9 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
     //{
     //auto  current_read = *read_sequence_ptr++;
     //auto  current_contig = *contig_sequence_ptr++;
-
+    int alignment_index = 0; // private by default in the for-loop
     #pragma omp for
-    for(int alignment_index=0; alignment_index<reads.size();++alignment_index)
+    for(alignment_index=0; alignment_index < reads.size(); ++alignment_index)
     {
       auto  current_read = *(read_sequence_ptr+alignment_index);
       auto  current_contig = *(contig_sequence_ptr+alignment_index);
