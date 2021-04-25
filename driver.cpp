@@ -106,8 +106,8 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
       int32_t maskLen = current_read_length/2; //following the example, this is the mask length, used for suboptimal alignments ??
 
       //s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* mat, const int32_t n, const int8_t score_size);
-      // WTF is score_size? the demo code uses a hard 2, so will we... oh i think this should be 1, we dont need the sub the optimal score?
-      p = ssw_init(current_read_numeric,current_read_length,mat,n,1);
+      // score_size = 2 means i dont know,,, 0 < 255, 1 >= 255, both are meaningless to me.
+      p = ssw_init(current_read_numeric,current_read_length,mat,n,2);
 			result = ssw_align (p, current_contig_numeric, current_contig_length, startGap * -1, extendGap * -1, flag, filter, 0, maskLen);
 
       //assign the results to the global array, no one shares an alignment index so it should be thread safe....
