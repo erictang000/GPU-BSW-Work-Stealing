@@ -80,7 +80,7 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
     //auto  current_contig = *contig_sequence_ptr++;
     int alignment_index = 0; // private by default in the for-loop
     #pragma omp for
-    for(alignment_index=0; alignment_index < reads.size(); ++alignment_index)
+    for(alignment_index=0; alignment_index < 1000 /*reads.size()*/; ++alignment_index)
     {
       auto  current_read = *(read_sequence_ptr+alignment_index);
       auto  current_contig = *(contig_sequence_ptr+alignment_index);
