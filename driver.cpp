@@ -37,15 +37,17 @@ int8_t nt_table[128] = {
 // the start gap scoring
 // the end gap scoring
 
-void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::alignment_results *alignments, int alignment_index, const int8_t* mat, int32_t n, short startGap, short extendGap)
+//we are going to pass in our own storage for the numeric versions of the sequences, 2 mallocs a function call is too much.
+
+void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::alignment_results *alignments, int alignment_index, const int8_t* mat, int32_t n, short startGap, short extendGap, int8_t* current_read_numeric, int8_t* current_contig_numeric)
 {
       int32_t s1=67108864,flag=0,filter=0;
       int8_t* table = nt_table;
       const int32_t current_read_length = read.length();
       const int32_t current_contig_length = contig.length();
 
-      int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
-      int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+      // int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
+      // int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
 
       //just convert the data to the format ssw wants...
       for(int i=0; i < current_read_length; ++i)
@@ -244,7 +246,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 {
     auto start = NOW;
     //initialize some values from the original implementation.
-    int32_t l,m,k,n=5;
+    int32_t l,m,k,n=5,s1=67108864;
     short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
     unsigned maxContigSize = getMaxLength(contigs);
     unsigned maxReadSize = getMaxLength(reads);
@@ -276,6 +278,15 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     //creates a parallel region, explicitly stating the variables we want to be shared.
     #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
+
+      //if cpu allocate some working memory
+      int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
+      int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+
+      //end cpu setup
+
+
+    
       uint64_t atomic_alignment_index;
       #pragma omp atomic read
       atomic_alignment_index = total_work_alignment_index;
@@ -318,7 +329,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           auto  current_read = *(read_sequence_ptr+i);
           auto  current_contig = *(contig_sequence_ptr+i);
 
-          cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap);
+          cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
           work_stolen_count++;
         }
         //*********
