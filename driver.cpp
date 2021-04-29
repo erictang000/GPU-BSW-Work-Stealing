@@ -264,7 +264,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       mata[k++] = 0; // ambiguous base
     }
 
-    int batch_size = 5000; //different for gpu/cpu?
+    int batch_size = 1000; //different for gpu/cpu?
 
     std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
   
