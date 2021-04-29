@@ -248,7 +248,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     unsigned maxContigSize = getMaxLength(contigs);
     unsigned maxReadSize = getMaxLength(reads);
     
-    s1=maxContigSize>maxReadSize?maxContigSize:maxReadSize; //do a tighter memory allocation here.
+    // "s1" is the variable ssw uses to allocate a buffer for the numeric versions of the sequence.
+    // we want to re-use this so we scope our allocation outside the function but per thread.
+    // the demo uses the size of int as space, but we know our max sizes immediately so we will do a tighter allocation.
+    s1=maxContigSize>maxReadSize?maxContigSize:maxReadSize; 
     
     unsigned totalAlignments = contigs.size(); // assuming that read and contig vectors are same length 
     // not sure actual intention, if we just want the max(reads,contigs) that is not hard but... all tests we have are of same length
