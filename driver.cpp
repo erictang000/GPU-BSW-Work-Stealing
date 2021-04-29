@@ -318,6 +318,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           auto  current_contig = *(contig_sequence_ptr+i);
 
           cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap);
+          work_stolen_count++;
         }
         //*********
 
