@@ -243,10 +243,13 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 {
     auto start = NOW;
     //initialize some values from the original implementation.
-    int32_t l,m,k,n=5,s1=67108864;
+    int32_t l,m,k,n=5,s1;
     short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
     unsigned maxContigSize = getMaxLength(contigs);
     unsigned maxReadSize = getMaxLength(reads);
+    
+    s1=maxContigSize>maxReadSize?maxContigSize:maxReadSize; //do a tighter memory allocation here.
+    
     unsigned totalAlignments = contigs.size(); // assuming that read and contig vectors are same length 
     // not sure actual intention, if we just want the max(reads,contigs) that is not hard but... all tests we have are of same length
     auto read_sequence_ptr = reads.begin();
@@ -264,7 +267,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       mata[k++] = 0; // ambiguous base
     }
 
-    int batch_size = 1000; //different for gpu/cpu?
+    int batch_size = 10; //different for gpu/cpu?
 
     std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
   
