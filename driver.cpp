@@ -275,8 +275,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     //creates a parallel region, explicitly stating the variables we want to be shared.
     #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
+      uint64_t atomic_alignment_index;
       #pragma omp atomic read
-      uint64_t atomic_alignment_index = total_work_alignment_index;
+      atomic_alignment_index = total_work_alignment_index;
 
       while(atomic_alignment_index < totalAlignments)
       {
