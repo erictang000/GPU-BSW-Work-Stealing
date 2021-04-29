@@ -41,7 +41,7 @@ int8_t nt_table[128] = {
 
 void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::alignment_results *alignments, int alignment_index, const int8_t* mat, int32_t n, short startGap, short extendGap, int8_t* current_read_numeric, int8_t* current_contig_numeric)
 {
-      int32_t s1=67108864,flag=0,filter=0;
+      int32_t flag=0,filter=0;
       int8_t* table = nt_table;
       const int32_t current_read_length = read.length();
       const int32_t current_contig_length = contig.length();
@@ -82,9 +82,6 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
       //destroy the result since ssw_init and ssw_align allocates something..
       align_destroy(result);
       init_destroy(p);
-
-      free(current_read_numeric);
-      free(current_contig_numeric);
 }
 
 //strA and strB are cuda allocated storage for all the strings in the batch..., we don't want to re-malloc them for every batch
@@ -342,6 +339,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         #pragma omp atomic read
         atomic_alignment_index = total_work_alignment_index;
       }
+      //if cpu free up the memory we used for processing
+      free(current_read_numeric);
+      free(current_contig_numeric);
+      //end of parallel region.
     }
 
     free(mata);
