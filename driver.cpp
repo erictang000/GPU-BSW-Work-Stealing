@@ -242,6 +242,7 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 void
 gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
 {
+    auto start = NOW;
     //initialize some values from the original implementation.
     int32_t l,m,k,n=5;
     short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
@@ -333,6 +334,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     }
 
     free(mata);
+
+    auto end  = NOW;
+    std::chrono::duration<double> diff = end - start;
+    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
 
 }
 
