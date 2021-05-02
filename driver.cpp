@@ -290,10 +290,17 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
     std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
 
+    std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
+    cudaStream_t streams_cuda[NSTREAMS];
+    for(int stm = 0; stm < NSTREAMS; stm++){
+      cudaStreamCreate(&streams_cuda[stm]);
+    }
+
+
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
-    #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
+    #pragma omp parallel shared(work_stolen_count,total_work_alignment_index,deviceCount,streams_cuda)
     {
 
       //assume one thread per device and those threads share the id with the device.
@@ -303,16 +310,12 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       {
 
         //SETUP AS GPU THREAD.
-
+        std::cout << "Setting up GPU Thread!\n";
 
         cudaSetDevice(my_cpu_id);
         int myGPUid;
         cudaGetDevice(&myGPUid);
         //float total_time_cpu = 0;
-        cudaStream_t streams_cuda[NSTREAMS];
-        for(int stm = 0; stm < NSTREAMS; stm++){
-          cudaStreamCreate(&streams_cuda[stm]);
-        }
 
         size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
         unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
