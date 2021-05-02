@@ -273,8 +273,6 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
     auto start = NOW;
 
-    std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
-  
     //shared variables, should also only be touched in atomic or critical regions...
     uint64_t work_stolen_count=0;
     uint64_t total_work_alignment_index=0;
@@ -291,6 +289,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     {
       //assume one thread per device and those threads share the id with the device.
       int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
+
+      if(my_cpu_id == 0) {
+            std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_num_threads() << " threads!" << std::endl;
+      }
 
       bool hasGPU = my_cpu_id < deviceCount;
       if(hasGPU)
