@@ -352,6 +352,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         #pragma omp atomic read
         atomic_alignment_index = total_work_alignment_index;
 
+        int received_batch_size = 0;
         //GPU START WORK
         while(atomic_alignment_index < totalAlignments)
         {
@@ -384,6 +385,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
             }
             
           }
+
+          received_batch_size = thread_current_alignment_index_end - thread_current_alignment_index_start;
+          
           //DO BATCH OF GPU WORK... i also dont think you need to add off the begin, this is a little wild, just index into the vector... actually i think you can just get a range straight up..
           // just do what works and clean up later.
           std::vector<std::string> sequencesA(contigs.begin()+thread_current_alignment_index_start, contigs.begin()+thread_current_alignment_index_end);
