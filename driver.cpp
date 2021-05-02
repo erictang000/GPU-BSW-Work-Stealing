@@ -294,7 +294,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
-    #pragma omp parallel shared(work_stolen_count,total_work_alignment_index) firstprivate(batch_size)
+    #pragma omp parallel firstprivate(batch_size) shared(work_stolen_count,total_work_alignment_index)
     {
 
 
@@ -305,7 +305,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       bool hasGPU = my_cpu_id < deviceCount;
       if(hasGPU)
       {
-        std::cout << "GPU Thread...\n";
+        std::cout << "GPU Thread... w/ batch size = " << batch_size << "\n";
 
         cudaSetDevice(my_cpu_id);
         int myGPUid;
@@ -323,6 +323,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       }
       else
       {
+        std::cout << "CPU Thread... w/ batch size = " << batch_size << "\n";
+        
         //if cpu allocate some working memory
         int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
         int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
