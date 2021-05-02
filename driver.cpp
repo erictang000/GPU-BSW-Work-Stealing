@@ -234,8 +234,13 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 //note: OMP Atomic protects a single variable OMP Critical can protect an entire block...
 
 void
-gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor)
+gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor, int num_threads)
 {
+
+    if(num_threads >= 1)
+    {
+      omp_set_num_threads(num_threads);
+    }
 
     //initialize some values from the original implementation.
     int32_t l,m,k,n=5,s1;
@@ -281,6 +286,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
+
     #pragma omp parallel firstprivate(batch_size) shared(work_stolen_count,total_work_alignment_index)
     {
       //assume one thread per device and those threads share the id with the device.
@@ -396,11 +402,11 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         //CPU WORK LIMIT... the cpu should not try to do work as we near the end...maybe?
         //int CPU_LIMIT = totalAlignments * 0.50; //the GPU works at about 5% of the rate, so we should only try
 
-        int work_stolen_so_far;
-        #pragma omp atomic read
-        work_stolen_so_far = work_stolen_count;
+        // int work_stolen_so_far;
+        // #pragma omp atomic read
+        // work_stolen_so_far = work_stolen_count;
 
-        while(atomic_alignment_index < totalAlignments && work_stolen_so_far < 40000)
+        while(atomic_alignment_index < totalAlignments)
         {
 
           /********* DO CPU THREAD WORK  ****/
@@ -438,7 +444,6 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
           #pragma omp atomic
           work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
-          work_stolen_so_far = work_stolen_count;
 
           #pragma omp atomic read
           atomic_alignment_index = total_work_alignment_index;
