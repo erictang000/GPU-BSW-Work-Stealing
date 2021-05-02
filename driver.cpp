@@ -394,9 +394,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         atomic_alignment_index = total_work_alignment_index;
 
         //CPU WORK LIMIT... the cpu should not try to do work as we near the end...maybe?
-        int CPU_LIMIT = 0;
+        //int CPU_LIMIT = totalAlignments * 0.50; //the GPU works at about 5% of the rate, so we should only try
 
-        while(atomic_alignment_index < (totalAlignments-CPU_LIMIT))
+        while(atomic_alignment_index < totalAlignments && work_stolen_count < 20000)
         {
 
           /********* DO CPU THREAD WORK  ****/
