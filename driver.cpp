@@ -89,7 +89,7 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
 
 // NOTE: this might not quite work as a function because we need to do some stealing and this hides the queue from the process...
 //       it can be here for now until i get the single pull from the cpu working well then we can maybe shimmy this in well...
-/**
+
 void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
 {
     auto packing_start = NOW;
@@ -220,7 +220,7 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
     asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
 
 }
-**/
+
 
 //struct vs std::pair? 
 // typedef struct alignment_batch_t{
@@ -320,6 +320,36 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
 
         std::cout << "GPU Thread... w/ batch size = " << batch_size << "\n";
+
+        std::cout << "Setting up Streams\n"; //Instances for each GPU
+        cudaStream_t streams_cuda[NSTREAMS];
+        for(int stm = 0; stm < NSTREAMS; stm++){
+          cudaStreamCreate(&streams_cuda[stm]);
+        }
+
+        //SETUP CUDA MEMORY  //FIXME?: the mallocs are using a size of a differen't type...
+        std::cout << "Setting up CUDA Memory!\n";
+        unsigned* offsetA_h;
+        cudaMallocHost(&offsetA_h, sizeof(int)* batch_size);
+        unsigned* offsetB_h;
+        cudaMallocHost(&offsetB_h, sizeof(int)* batch_size);
+
+        char *strA_d, *strB_d;
+        cudaErrchk(cudaMalloc(&strA_d, maxContigSize * batch_size * sizeof(char)));
+        cudaErrchk(cudaMalloc(&strB_d, maxReadSize * batch_size * sizeof(char)));
+
+        char* strA;
+        cudaMallocHost(&strA, sizeof(char)*maxContigSize * batch_size );
+        char* strB;
+        cudaMallocHost(&strB, sizeof(char)* maxReadSize * batch_size);
+
+        //END CUDA MEMORY
+
+        //END GPU SETUP
+        uint64_t atomic_alignment_index;
+        #pragma omp atomic read
+        atomic_alignment_index = total_work_alignment_index;
+
 
       }
       else
