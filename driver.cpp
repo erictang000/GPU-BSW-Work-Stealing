@@ -305,7 +305,18 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       bool hasGPU = my_cpu_id < deviceCount;
       if(hasGPU)
       {
-          std::cout << "Has GPU!" << std::endl;
+        cudaSetDevice(my_cpu_id);
+        int myGPUid;
+        cudaGetDevice(&myGPUid);
+        //float total_time_cpu = 0;
+
+        size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
+        unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
+        unsigned max_alns_sugg = 20000;
+        max_alns_gpu = max_alns_gpu > max_alns_sugg ? max_alns_sugg : max_alns_gpu;
+        batch_size = max_alns_gpu; 
+        std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
+        std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
       }
       else
       {
