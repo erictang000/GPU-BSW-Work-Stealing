@@ -94,6 +94,7 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
 // NOTE: this might not quite work as a function because we need to do some stealing and this hides the queue from the process...
 //       it can be here for now until i get the single pull from the cpu working well then we can maybe shimmy this in well...
 
+/*
 void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, short scores[4], int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
 {
     auto packing_start = NOW;
@@ -218,7 +219,7 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
     asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
 
 }
-/**/
+*/
 
 //struct vs std::pair? 
 // typedef struct alignment_batch_t{
