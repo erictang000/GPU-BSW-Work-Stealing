@@ -204,23 +204,31 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
       quer_file.close();
   }
 
-  //G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
-  // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
+//copies of B
+{
+        int oldSize = G_sequencesB.size();
+        int newSize = oldSize;
+        int nDupSlot = 4;
 
-  //G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
-  // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
+        G_sequencesB.resize(nDupSlot * oldSize);
+        for(int i=0; i<(nDupSlot-1); ++i) {
+            std::copy_n(G_sequencesB.begin(), oldSize, G_sequencesB.begin() + newSize);       
+            newSize = newSize + oldSize;
+         }
+}
+//copies of A
+{
+        int oldSize = G_sequencesA.size();
+        int newSize = oldSize;
+        int nDupSlot = 4;
+
+        G_sequencesA.resize(nDupSlot * oldSize);
+        for(int i=0; i<(nDupSlot-1); ++i) {
+            std::copy_n(G_sequencesA.begin(), oldSize, G_sequencesA.begin() + newSize);       
+            newSize = newSize + oldSize;
+         }
+}
+
 
   gpu_bsw_driver::alignment_results results_test;
 
