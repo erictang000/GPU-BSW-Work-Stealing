@@ -453,8 +453,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
         }
 
-        // #pragma omp atomic
-        // work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
+         #pragma omp atomic
+         work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
         //*********
 
 
