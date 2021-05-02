@@ -90,9 +90,11 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
 // NOTE: this might not quite work as a function because we need to do some stealing and this hides the queue from the process...
 //       it can be here for now until i get the single pull from the cpu working well then we can maybe shimmy this in well...
 
-void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
+void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, short scores[4], int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
 {
     auto packing_start = NOW;
+
+    short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
 
     //pointers to where in the alignment results we are going to return into...
     short* alAbeg = alignments->ref_begin + alignment_index;
