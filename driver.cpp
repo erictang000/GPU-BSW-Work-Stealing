@@ -416,7 +416,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       #pragma omp atomic read
       atomic_alignment_index = total_work_alignment_index;
 
-      while(atomic_alignment_index < totalAlignments)
+      //CPU WORK LIMIT... the cpu should not try to do work as we near the end...
+      int CPU_LIMIT = 500;
+
+      while(atomic_alignment_index < (totalAlignments-CPU_LIMIT))
       {
 
         //********* CPU THREAD WORK
