@@ -280,7 +280,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     uint64_t work_stolen_count=0;
     uint64_t total_work_alignment_index=0;
 
-    // std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    std::cout << "Number of GPU Threads: " << deviceCount << std::endl; 
 
     // std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
     // cudaStream_t streams_cuda[NSTREAMS];
@@ -300,10 +302,10 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       //assume one thread per device and those threads share the id with the device.
       int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
 
-
-      if(false)
+      bool hasGPU = my_cpu_id < deviceCount;
+      if(hasGPU)
       {
-
+          std::cout << "Has GPU!" << std::endl;
       }
       else
       {
