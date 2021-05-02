@@ -306,10 +306,11 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       if(hasGPU)
       {
         std::cout << "GPU Thread...\n";
-        /*
+
         cudaSetDevice(my_cpu_id);
         int myGPUid;
         cudaGetDevice(&myGPUid);
+                /*
         //float total_time_cpu = 0;
 
         size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
