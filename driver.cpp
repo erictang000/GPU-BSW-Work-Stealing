@@ -41,7 +41,7 @@ int8_t nt_table[128] = {
 
 void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::alignment_results *alignments, int alignment_index, const int8_t* mat, int32_t n, short startGap, short extendGap, int8_t* current_read_numeric, int8_t* current_contig_numeric)
 {
-      int32_t flag=0,filter=0;
+      int32_t flag=2,filter=0;
       int8_t* table = nt_table;
       const int32_t current_read_length = read.length();
       const int32_t current_contig_length = contig.length();
