@@ -399,8 +399,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         int work_stolen_so_far;
         #pragma omp atomic read
         work_stolen_so_far = work_stolen_count;
-        
-        while(atomic_alignment_index < totalAlignments && work_stolen_count < 40000)
+
+        while(atomic_alignment_index < totalAlignments && work_stolen_so_far < 40000)
         {
 
           /********* DO CPU THREAD WORK  ****/
