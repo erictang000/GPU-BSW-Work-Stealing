@@ -106,13 +106,6 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
     gpu_alignments gpu_data(batch_size); //i guess this cleans itself up when it leaves scope...
 
     int blocksLaunched = batch_size; //0;
-    // std::vector<std::string>::const_iterator beginAVec;
-    // std::vector<std::string>::const_iterator endAVec;
-    // std::vector<std::string>::const_iterator beginBVec;
-    // std::vector<std::string>::const_iterator endBVec;
-
-    // std::vector<std::string> sequencesA(beginAVec, endAVec);
-    // std::vector<std::string> sequencesB(beginBVec, endBVec);  //we can just pass in seqA and B if this is where things live at the end of the day
 
     long unsigned running_sum = 0;
     int sequences_per_stream = (blocksLaunched) / NSTREAMS;
@@ -261,8 +254,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     auto contig_sequence_ptr = contigs.begin();
     initialize_alignments(alignments, totalAlignments); // pinned memory allocation
 
-    //bw: ssw uses a 5x5 scoring matrix ?!?! maybe for "ambiguous base?"
-    //  but the header uses a 4x4 scoring matrix in the example. we will use the demo version.
+    //bw: ssw uses a 5x5 scoring matrix with ambiguous bases, we will do the same
     int8_t* mata = (int8_t*)calloc(25, sizeof(int8_t));
     const int8_t* mat = mata;
 
@@ -286,21 +278,11 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     cudaGetDeviceCount(&deviceCount);
     std::cout << "Number of GPU Threads: " << deviceCount << std::endl; 
 
-    // std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
-    // cudaStream_t streams_cuda[NSTREAMS];
-    // for(int stm = 0; stm < NSTREAMS; stm++){
-    //   cudaStreamCreate(&streams_cuda[stm]);
-    // }
-
-
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
     #pragma omp parallel firstprivate(batch_size) shared(work_stolen_count,total_work_alignment_index)
     {
-
-
-
       //assume one thread per device and those threads share the id with the device.
       int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
 
@@ -311,8 +293,6 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         int myGPUid;
         cudaGetDevice(&myGPUid);
                 
-        //float total_time_cpu = 0;
-
         size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
         unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
         unsigned max_alns_sugg = 20000;
@@ -321,9 +301,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
         std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
 
-        std::cout << "GPU Thread... w/ batch size = " << batch_size << "\n";
+        //std::cout << "GPU Thread... w/ batch size = " << batch_size << "\n";
 
-        std::cout << "Setting up Streams\n"; //Instances for each GPU
+
         cudaStream_t streams_cuda[NSTREAMS];
         for(int stm = 0; stm < NSTREAMS; stm++){
           cudaStreamCreate(&streams_cuda[stm]);
@@ -382,8 +362,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                 std::cout << "Warning Atomic Queue is Broken!" << std::endl;
                 //assert
               }
-            }
-            
+            }            
           }
 
           received_batch_size = thread_current_alignment_index_end - thread_current_alignment_index_start;
@@ -410,67 +389,61 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
       //end cpu setup
 
-
-    
-      uint64_t atomic_alignment_index;
-      #pragma omp atomic read
-      atomic_alignment_index = total_work_alignment_index;
-
-      //CPU WORK LIMIT... the cpu should not try to do work as we near the end...
-      int CPU_LIMIT = 29500;
-
-      while(atomic_alignment_index < (totalAlignments-CPU_LIMIT))
-      {
-
-        //********* CPU THREAD WORK
-        
-        int thread_current_alignment_index_start;
-        int thread_current_alignment_index_end;
-
-        #pragma omp critical //maybe doing too much for atomic, just use critical for now.
-        { 
-          thread_current_alignment_index_start=total_work_alignment_index; 
-          if(thread_current_alignment_index_start + batch_size < totalAlignments)
-          {
-            thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
-          }
-          else
-          {
-            //take the last "batch"
-            total_work_alignment_index = totalAlignments;
-            thread_current_alignment_index_end = totalAlignments;
-
-            if(thread_current_alignment_index_start >= totalAlignments)
-            {
-              //something bad happened, abort. thankfully i've never seen this.
-              std::cout << "Warning Atomic Queue is Broken!" << std::endl;
-            }
-          }          
-        }
-
-        for(int i=thread_current_alignment_index_start; i < thread_current_alignment_index_end; ++i)
-        {
-          auto  current_read = *(read_sequence_ptr+i);
-          auto  current_contig = *(contig_sequence_ptr+i);
-          cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
-        }
-
-         #pragma omp atomic
-         work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
-        //*********
-
-
-        //TODO DO GPU THREAD WORK, this will pull a batch from the queue but also do the whole cpu thread work routine, between kernel calls
-        // to start lets not do that, it might not actually be worth it anyway... just assume rank=0 owns a gpu and only does gpu work.
+        uint64_t atomic_alignment_index;
         #pragma omp atomic read
         atomic_alignment_index = total_work_alignment_index;
+
+        //CPU WORK LIMIT... the cpu should not try to do work as we near the end...maybe?
+        int CPU_LIMIT = 0;
+
+        while(atomic_alignment_index < (totalAlignments-CPU_LIMIT))
+        {
+
+          /********* DO CPU THREAD WORK  ****/
+          
+          int thread_current_alignment_index_start;
+          int thread_current_alignment_index_end;
+
+          #pragma omp critical //too much for atomic
+          { 
+            thread_current_alignment_index_start=total_work_alignment_index; 
+            if(thread_current_alignment_index_start + batch_size < totalAlignments)
+            {
+              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
+            }
+            else
+            {
+              //take the last "batch"
+              total_work_alignment_index = totalAlignments;
+              thread_current_alignment_index_end = totalAlignments;
+
+              if(thread_current_alignment_index_start >= totalAlignments)
+              {
+                //something bad happened, abort. thankfully i've never seen this.
+                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
+              }
+            }          
+          }
+
+          for(int i=thread_current_alignment_index_start; i < thread_current_alignment_index_end; ++i)
+          {
+            auto  current_read = *(read_sequence_ptr+i);
+            auto  current_contig = *(contig_sequence_ptr+i);
+            cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+          }
+
+          #pragma omp atomic
+          work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
+
+          #pragma omp atomic read
+          atomic_alignment_index = total_work_alignment_index;
+        }
+        //if cpu free up the memory we used for processing
+        free(current_read_numeric);
+        free(current_contig_numeric);
       }
-      //if cpu free up the memory we used for processing
-      free(current_read_numeric);
-      free(current_contig_numeric);
-    }
-        #pragma omp barrier
-    }      //end of parallel region.
+      #pragma omp barrier  //<-- should be implicit
+    }//end of parallel region.
 
     free(mata);
 
