@@ -352,6 +352,50 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         #pragma omp atomic read
         atomic_alignment_index = total_work_alignment_index;
 
+        //GPU START WORK
+        while(atomic_alignment_index < totalAlignments)
+        {
+
+          //********* GPU THREAD WORK
+          
+          int thread_current_alignment_index_start;
+          int thread_current_alignment_index_end;
+          //eat up the alignments until the queue is completed.
+          //#pragma omp atomic capture
+          #pragma omp critical //maybe doing too much for atomic, just use critical for now.
+          { 
+            thread_current_alignment_index_start=total_work_alignment_index; 
+            if(thread_current_alignment_index_start + batch_size < totalAlignments)
+            {
+              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
+            }
+            else
+            {
+              //take the last "batch"
+              total_work_alignment_index = totalAlignments;
+              thread_current_alignment_index_end = totalAlignments;
+
+              if(thread_current_alignment_index_start >= totalAlignments)
+              {
+                //something bad happened, abort. that while loop might not be thread safe?
+                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
+                //assert
+              }
+            }
+            
+          }
+          //DO BATCH OF GPU WORK... i also dont think you need to add off the begin, this is a little wild, just index into the vector... actually i think you can just get a range straight up..
+          // just do what works and clean up later.
+          std::vector<std::string> sequencesA(contigs.begin()+thread_current_alignment_index_start, contigs.begin()+thread_current_alignment_index_end);
+          std::vector<std::string> sequencesB(reads.begin()+thread_current_alignment_index_start, reads.begin()+thread_current_alignment_index_end);
+
+           //gpu_do_batch_alignments(sequencesA, sequencesB, scores, batch_size, alignments, thread_current_alignment_index_start, strA, strB, strA_d, strB_d, offsetA_h, offsetB_h, maxContigSize, maxReadSize, streams_cuda);
+
+          #pragma omp atomic read
+          atomic_alignment_index = total_work_alignment_index;
+        }
+
+        //GPU END WORK
 
       }
       else
