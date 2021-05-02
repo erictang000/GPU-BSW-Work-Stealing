@@ -280,28 +280,13 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     uint64_t work_stolen_count=0;
     uint64_t total_work_alignment_index=0;
 
-    // std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
-
-    // std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
-    // cudaStream_t streams_cuda[NSTREAMS];
-    // for(int stm = 0; stm < NSTREAMS; stm++){
-    //   cudaStreamCreate(&streams_cuda[stm]);
-    // }
-
-
-    //size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
-
     //creates a parallel region, explicitly stating the variables we want to be shared.
     #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
 
-      //assume one thread per device and those threads share the id with the device.
-      int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
-      
-
-        //if cpu allocate some working memory
-        int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
-        int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+      //if cpu allocate some working memory
+      int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
+      int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
 
       //end cpu setup
 
@@ -373,7 +358,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     auto end  = NOW;
     std::chrono::duration<double> diff = end - start;
     std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
-    std::cout << "Work Stolen: " << work_stolen_count << "=> " << round(work_stolen_count/totalAlignments * 100) << "%" << std::endl;
+
 }
 
 
