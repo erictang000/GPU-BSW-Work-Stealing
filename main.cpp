@@ -204,7 +204,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
       quer_file.close();
   }
 
-  G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
+  //G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
   // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
   // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
   // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
@@ -213,7 +213,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
   // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
   // G_sequencesA.insert(G_sequencesA.end() , G_sequencesA.begin(),G_sequencesA.end());
 
-  G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
+  //G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
   // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
   // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
   // G_sequencesB.insert(G_sequencesB.end() , G_sequencesB.begin(),G_sequencesB.end());
