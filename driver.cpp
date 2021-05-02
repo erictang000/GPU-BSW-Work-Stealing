@@ -41,11 +41,7 @@ int8_t nt_table[128] = {
 
 void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::alignment_results *alignments, int alignment_index, const int8_t* mat, int32_t n, short startGap, short extendGap, int8_t* current_read_numeric, int8_t* current_contig_numeric)
 {
-
-      //the flag parameter is pretty confusing, apparently we need to set bit 7 to get the best start positions...
-      //  (from high to low) bit 5: return the best alignment beginning position; 6: if (ref_end1 - ref_begin1 <= filterd) && (read_end1 - read_begin1 <= filterd), return cigar; 7: if max score >= filters, return cigar; 8: always return cigar; if 6 & 7 are both setted, only return cigar when both filter fulfilled
-      //  its annoying that its suppose to be an int8 but the example uses an int32, a full return in the demo has flag=2... 00000000... 1 is return all, "2" returns the alignment path if -c is set from the demo...
-      int32_t flag=0,filter=0;  //so i believe flag needs to be set to 2..
+      int32_t flag=0,filter=0;
       int8_t* table = nt_table;
       const int32_t current_read_length = read.length();
       const int32_t current_contig_length = contig.length();
@@ -93,13 +89,10 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
 
 // NOTE: this might not quite work as a function because we need to do some stealing and this hides the queue from the process...
 //       it can be here for now until i get the single pull from the cpu working well then we can maybe shimmy this in well...
-
-/*
-void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, short scores[4], int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
+/**
+void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<std::string> sequencesB, int batch_size, gpu_bsw_driver::alignment_results *alignments, int alignment_index, char*strA, char*strB,char *strA_d, char *strB_d,unsigned* offsetA_h, unsigned* offsetB_h, unsigned int maxContigSize, unsigned int maxReadSize, cudaStream_t* streams_cuda)
 {
     auto packing_start = NOW;
-
-    short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
 
     //pointers to where in the alignment results we are going to return into...
     short* alAbeg = alignments->ref_begin + alignment_index;
@@ -110,7 +103,15 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 
     gpu_alignments gpu_data(batch_size); //i guess this cleans itself up when it leaves scope...
 
-    int blocksLaunched = batch_size;
+    int blocksLaunched = batch_size; //0;
+    // std::vector<std::string>::const_iterator beginAVec;
+    // std::vector<std::string>::const_iterator endAVec;
+    // std::vector<std::string>::const_iterator beginBVec;
+    // std::vector<std::string>::const_iterator endBVec;
+
+    // std::vector<std::string> sequencesA(beginAVec, endAVec);
+    // std::vector<std::string> sequencesB(beginBVec, endBVec);  //we can just pass in seqA and B if this is where things live at the end of the day
+
     long unsigned running_sum = 0;
     int sequences_per_stream = (blocksLaunched) / NSTREAMS;
     int sequences_stream_leftover = (blocksLaunched) % NSTREAMS;
@@ -219,7 +220,7 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
     asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
 
 }
-*/
+**/
 
 //struct vs std::pair? 
 // typedef struct alignment_batch_t{
@@ -228,19 +229,10 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 // } alignment_batch_t;
 
 // typedef struct AtomicAlignmentQueue{
-//   //std::atomic_uint64_t current_index; //std::atomics dont mix well with openmp?
-//   uint64_t current_index;
+//   std::atomic_uint64_t current_index;
 //   int max_index;
 //   AtomicAlignmentQueue() : current_index(0){}
-//   alignment_batch_t GetBatch(int count){ 
-
-//     alignment_batch_t retVal;
-//     current_index += count; 
-//     retVal.start = current_index; 
-//     retVal.stop = (retVal.start + count > max_index)?max_index: retVal.start + count);
-    
-//     return retVal;
-//     }
+//   alignment_batch_t GetBatch(int count){ alignment_batch_t retVal; retVal.start = current_index.fetch_add(count); retVal.stop = retVal.start + count;};
 // } AtomicAlignmentQueue;
 
 
@@ -280,193 +272,93 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
     int batch_size = 100; //different for gpu/cpu?
 
-    std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
     auto start = NOW;
-      
+
+    std::cout<< "SSW GPU-CPU DRIVER STARTED w/" << omp_get_max_threads() << " threads!" << std::endl;
+  
     //shared variables, should also only be touched in atomic or critical regions...
     uint64_t work_stolen_count=0;
-    uint64_t total_work_alignment_index=0; //maybe move this out to global scope?
-    // int deviceCount;
-    // cudaGetDeviceCount(&deviceCount);
-
-    // std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
-
-    // std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
-    // cudaStream_t streams_cuda[NSTREAMS];
-    // for(int stm = 0; stm < NSTREAMS; stm++){
-    //   cudaStreamCreate(&streams_cuda[stm]);
-    // }
-
-
-    //size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
+    uint64_t total_work_alignment_index=0;
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
     #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
 
-      //assume one thread per device and those threads share the id with the device.
-      int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
-/*      
-      bool is_gpu_thread = false; //my_cpu_id < deviceCount;
-      if(false)
+      //if cpu allocate some working memory
+      int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
+      int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+
+      //end cpu setup
+
+
+    
+      uint64_t atomic_alignment_index;
+      #pragma omp atomic read
+      atomic_alignment_index = total_work_alignment_index;
+
+      while(atomic_alignment_index < totalAlignments)
       {
 
-        //SETUP AS GPU THREAD.
-        std::cout << "Setting up GPU Thread!\n";
-
-        cudaSetDevice(my_cpu_id);
-        int myGPUid;
-        cudaGetDevice(&myGPUid);
-        //float total_time_cpu = 0;
-
-        size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
-        unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
-        unsigned max_alns_sugg = 20000;
-        max_alns_gpu = max_alns_gpu > max_alns_sugg ? max_alns_sugg : max_alns_gpu;
-        batch_size = max_alns_gpu; 
-
-        std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
-        std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
-
-        //SETUP CUDA MEMORY  //FIXME?: the mallocs are using a size of a differen't type...
-        unsigned* offsetA_h;
-        cudaMallocHost(&offsetA_h, sizeof(int)* batch_size);
-        unsigned* offsetB_h;
-        cudaMallocHost(&offsetB_h, sizeof(int)* batch_size);
-
-        char *strA_d, *strB_d;
-        cudaErrchk(cudaMalloc(&strA_d, maxContigSize * batch_size * sizeof(char)));
-        cudaErrchk(cudaMalloc(&strB_d, maxReadSize * batch_size * sizeof(char)));
-
-        char* strA;
-        cudaMallocHost(&strA, sizeof(char)*maxContigSize * batch_size );
-        char* strB;
-        cudaMallocHost(&strB, sizeof(char)* maxReadSize * batch_size);
-
-        //END CUDA MEMORY
-
-        //END GPU SETUP
-        uint64_t atomic_alignment_index;
-        #pragma omp atomic read
-        atomic_alignment_index = total_work_alignment_index;
-
-        while(atomic_alignment_index < totalAlignments)
-        {
-
-          //********* GPU THREAD WORK
-          
-          int thread_current_alignment_index_start;
-          int thread_current_alignment_index_end;
-          //eat up the alignments until the queue is completed.
-          //#pragma omp atomic capture
-          #pragma omp critical //maybe doing too much for atomic, just use critical for now.
-          { 
-            thread_current_alignment_index_start=total_work_alignment_index; 
-            if(thread_current_alignment_index_start + batch_size < totalAlignments)
-            {
-              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
-            }
-            else
-            {
-              //take the last "batch"
-              total_work_alignment_index = totalAlignments;
-              thread_current_alignment_index_end = totalAlignments;
-
-              if(thread_current_alignment_index_start >= totalAlignments)
-              {
-                //something bad happened, abort. that while loop might not be thread safe?
-                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
-                //assert
-              }
-            }
-            
-          }
-          //DO BATCH OF GPU WORK... i also dont think you need to add off the begin, this is a little wild, just index into the vector... actually i think you can just get a range straight up..
-          // just do what works and clean up later.
-          std::vector<std::string> sequencesA(contigs.begin()+thread_current_alignment_index_start, contigs.begin()+thread_current_alignment_index_end);
-          std::vector<std::string> sequencesB(reads.begin()+thread_current_alignment_index_start, reads.begin()+thread_current_alignment_index_end);
-
-           //gpu_do_batch_alignments(sequencesA, sequencesB, scores, batch_size, alignments, thread_current_alignment_index_start, strA, strB, strA_d, strB_d, offsetA_h, offsetB_h, maxContigSize, maxReadSize, streams_cuda);
-
-          #pragma omp atomic read
-          atomic_alignment_index = total_work_alignment_index;
-        }
-
-      }
-      else //CPU ONLY - ie. NOT A GPU HOST
-*/      
-      {
-
-      
-
-        //if cpu allocate some working memory
-        int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
-        int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
-
-        //end cpu setup
-
-
-      
-        uint64_t atomic_alignment_index;
-        #pragma omp atomic read
-        atomic_alignment_index = total_work_alignment_index;
-
-        while(atomic_alignment_index < totalAlignments)
-        {
-
-          //********* CPU THREAD WORK
-          
-          int thread_current_alignment_index_start;
-          int thread_current_alignment_index_end;
-          //eat up the alignments until the queue is completed.
-          //#pragma omp atomic capture
-          #pragma omp critical //maybe doing too much for atomic, just use critical for now.
-          { 
-            thread_current_alignment_index_start=total_work_alignment_index; 
-            if(thread_current_alignment_index_start + batch_size < totalAlignments)
-            {
-              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
-            }
-            else
-            {
-              //take the last "batch"
-              total_work_alignment_index = totalAlignments;
-              thread_current_alignment_index_end = totalAlignments;
-
-              if(thread_current_alignment_index_start >= totalAlignments)
-              {
-                //something bad happened, abort. that while loop might not be thread safe?
-                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
-                //assert
-              }
-            }
-            
-          }
-
-          for(int i=thread_current_alignment_index_start; i < thread_current_alignment_index_end; ++i)
+        //********* CPU THREAD WORK
+        
+        int thread_current_alignment_index_start;
+        int thread_current_alignment_index_end;
+        //eat up the alignments until the queue is completed.
+        //#pragma omp atomic capture
+        #pragma omp critical //maybe doing too much for atomic, just use critical for now.
+        { 
+          thread_current_alignment_index_start=total_work_alignment_index; 
+          if(thread_current_alignment_index_start + batch_size < totalAlignments)
           {
-
-            auto  current_read = *(read_sequence_ptr+i);
-            auto  current_contig = *(contig_sequence_ptr+i);
-
-            cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
-            work_stolen_count++;
+            thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
           }
-          #pragma omp atomic read
-          atomic_alignment_index = total_work_alignment_index;
-        }
-        //if cpu free up the memory we used for processing
-        free(current_read_numeric);
-        free(current_contig_numeric);
-        //end of parallel region.
-      }
+          else
+          {
+            //take the last "batch"
+            total_work_alignment_index = totalAlignments;
+            thread_current_alignment_index_end = totalAlignments;
 
-      free(mata);
+            if(thread_current_alignment_index_start >= totalAlignments)
+            {
+              //something bad happened, abort. that while loop might not be thread safe?
+              std::cout << "Warning Atomic Queue is Broken!" << std::endl;
+              //assert
+            }
+          }
+          
+        }
+
+        for(int i=thread_current_alignment_index_start; i < thread_current_alignment_index_end; ++i)
+        {
+
+          auto  current_read = *(read_sequence_ptr+i);
+          auto  current_contig = *(contig_sequence_ptr+i);
+
+          cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+          work_stolen_count++;
+        }
+        //*********
+
+
+        //TODO DO GPU THREAD WORK, this will pull a batch from the queue but also do the whole cpu thread work routine, between kernel calls
+        // to start lets not do that, it might not actually be worth it anyway... just assume rank=0 owns a gpu and only does gpu work.
+
+
+        #pragma omp atomic read
+        atomic_alignment_index = total_work_alignment_index;
+      }
+      //if cpu free up the memory we used for processing
+      free(current_read_numeric);
+      free(current_contig_numeric);
+      //end of parallel region.
     }
+
+    free(mata);
+
     auto end  = NOW;
     std::chrono::duration<double> diff = end - start;
     std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
-    std::cout << "Work Stolen: " << work_stolen_count << "=> " << round(work_stolen_count/totalAlignments * 100) << "%" << std::endl;
+
 }
 
 
