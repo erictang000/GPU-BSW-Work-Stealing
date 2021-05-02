@@ -208,7 +208,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
 {
         int oldSize = G_sequencesB.size();
         int newSize = oldSize;
-        int nDupSlot = 4;
+        int nDupSlot = 10;
 
         G_sequencesB.resize(nDupSlot * oldSize);
         for(int i=0; i<(nDupSlot-1); ++i) {
@@ -220,7 +220,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file){
 {
         int oldSize = G_sequencesA.size();
         int newSize = oldSize;
-        int nDupSlot = 4;
+        int nDupSlot = 10;
 
         G_sequencesA.resize(nDupSlot * oldSize);
         for(int i=0; i<(nDupSlot-1); ++i) {
