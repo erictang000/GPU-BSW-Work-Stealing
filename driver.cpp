@@ -285,16 +285,16 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     //shared variables, should also only be touched in atomic or critical regions...
     uint64_t work_stolen_count=0;
     uint64_t total_work_alignment_index=0; //maybe move this out to global scope?
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
+    // int deviceCount;
+    // cudaGetDeviceCount(&deviceCount);
 
-    std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
+    // std::cout << "Number of GPU Threads: " << deviceCount << std::endl; //maybe endls are bad. shrug.
 
-    std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
-    cudaStream_t streams_cuda[NSTREAMS];
-    for(int stm = 0; stm < NSTREAMS; stm++){
-      cudaStreamCreate(&streams_cuda[stm]);
-    }
+    // std::cout << "Setting up Streams\n"; //hmm maybe these streams need to be global
+    // cudaStream_t streams_cuda[NSTREAMS];
+    // for(int stm = 0; stm < NSTREAMS; stm++){
+    //   cudaStreamCreate(&streams_cuda[stm]);
+    // }
 
 
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
