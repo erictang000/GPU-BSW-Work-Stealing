@@ -417,7 +417,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       atomic_alignment_index = total_work_alignment_index;
 
       //CPU WORK LIMIT... the cpu should not try to do work as we near the end...
-      int CPU_LIMIT = 30000;
+      int CPU_LIMIT = 29500;
 
       while(atomic_alignment_index < (totalAlignments-CPU_LIMIT))
       {
@@ -426,8 +426,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         
         int thread_current_alignment_index_start;
         int thread_current_alignment_index_end;
-        //eat up the alignments until the queue is completed.
-        //#pragma omp atomic capture
+
         #pragma omp critical //maybe doing too much for atomic, just use critical for now.
         { 
           thread_current_alignment_index_start=total_work_alignment_index; 
@@ -443,20 +442,16 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
             if(thread_current_alignment_index_start >= totalAlignments)
             {
-              //something bad happened, abort. that while loop might not be thread safe?
+              //something bad happened, abort. thankfully i've never seen this.
               std::cout << "Warning Atomic Queue is Broken!" << std::endl;
-              //assert
             }
-          }
-          
+          }          
         }
 
         for(int i=thread_current_alignment_index_start; i < thread_current_alignment_index_end; ++i)
         {
-
           auto  current_read = *(read_sequence_ptr+i);
           auto  current_contig = *(contig_sequence_ptr+i);
-
           cpu_do_one_alignment(current_read,current_contig,alignments,i,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
         }
 
@@ -467,8 +462,6 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         //TODO DO GPU THREAD WORK, this will pull a batch from the queue but also do the whole cpu thread work routine, between kernel calls
         // to start lets not do that, it might not actually be worth it anyway... just assume rank=0 owns a gpu and only does gpu work.
-
-
         #pragma omp atomic read
         atomic_alignment_index = total_work_alignment_index;
       }
