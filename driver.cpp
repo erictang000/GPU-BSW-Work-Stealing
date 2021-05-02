@@ -300,7 +300,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
-    #pragma omp parallel shared(work_stolen_count,total_work_alignment_index,deviceCount,streams_cuda)
+    #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
 
       //assume one thread per device and those threads share the id with the device.
