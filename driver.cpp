@@ -295,10 +295,18 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     #pragma omp parallel shared(work_stolen_count,total_work_alignment_index)
     {
 
+
+
       //assume one thread per device and those threads share the id with the device.
       int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
-      
 
+
+      if(false)
+      {
+
+      }
+      else
+      {
         //if cpu allocate some working memory
         int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
         int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
@@ -365,15 +373,16 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       //if cpu free up the memory we used for processing
       free(current_read_numeric);
       free(current_contig_numeric);
-      //end of parallel region.
     }
+        #pragma omp barrier
+    }      //end of parallel region.
 
     free(mata);
 
     auto end  = NOW;
     std::chrono::duration<double> diff = end - start;
     std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
-    std::cout << "Work Stolen: " << work_stolen_count << "=> " << round(work_stolen_count/totalAlignments * 100) << "%" << std::endl;
+    std::cout << "Work Stolen: " << work_stolen_count << "=> " << round((float)work_stolen_count/(float)totalAlignments * 100) << "%" << std::endl;
 }
 
 
