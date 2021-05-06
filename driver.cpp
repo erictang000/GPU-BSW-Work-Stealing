@@ -365,8 +365,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         int received_batch_size = 0;
         //GPU START WORK
-        static const int GPU_BATCH_BLOCK = 20000;
-        while(atomic_alignment_index < totalAlignments - GPU_BATCH_BLOCK)
+        //static const int GPU_BATCH_BLOCK = 20000;
+        while(atomic_alignment_index < totalAlignments)
         {
 
           //********* GPU THREAD WORK
@@ -432,7 +432,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         // #pragma omp atomic read
         // work_stolen_so_far = work_stolen_count;
         static const int CPU_BATCH_BLOCK = 20000;
-        while(atomic_alignment_index < totalAlignments)
+        while(atomic_alignment_index < totalAlignments - CPU_BATCH_BLOCK)
         {
 
           /********* DO CPU THREAD WORK  ****/
