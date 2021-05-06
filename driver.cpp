@@ -574,10 +574,10 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
 			result = ssw_align (p, current_contig_numeric, current_contig_length, startGap * -1, extendGap * -1, flag, filter, 0, maskLen);
 
       //assign the results to the global array, no one shares an alignment index so it should be thread safe....
-      alignments->query_begin[alignment_index] = result->ref_begin1;
-      alignments->query_end[alignment_index] = result->ref_end1;
-      alignments->ref_begin[alignment_index] = result->read_begin1;
-      alignments->ref_end[alignment_index] = result->read_end1;
+      alignments->query_begin[alignment_index] = result->read_begin1;
+      alignments->query_end[alignment_index] = result->read_end1;
+      alignments->ref_begin[alignment_index] = result->ref_begin1;
+      alignments->ref_end[alignment_index] = result->ref_end1;
       alignments->top_scores[alignment_index] = result->score1;
 
       //destroy the result since ssw_init and ssw_align allocates something..
