@@ -237,23 +237,6 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 
 }
 
-
-//struct vs std::pair? 
-// typedef struct alignment_batch_t{
-//     int start;
-//     int stop;
-// } alignment_batch_t;
-
-// typedef struct AtomicAlignmentQueue{
-//   std::atomic_uint64_t current_index;
-//   int max_index;
-//   AtomicAlignmentQueue() : current_index(0){}
-//   alignment_batch_t GetBatch(int count){ alignment_batch_t retVal; retVal.start = current_index.fetch_add(count); retVal.stop = retVal.start + count;};
-// } AtomicAlignmentQueue;
-
-
-//note: OMP Atomic protects a single variable OMP Critical can protect an entire block...
-
 void
 gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor, int num_threads)
 {
@@ -591,10 +574,10 @@ gpu_bsw_driver::cpu_driver_dna(std::vector<std::string> reads, std::vector<std::
 			result = ssw_align (p, current_contig_numeric, current_contig_length, startGap * -1, extendGap * -1, flag, filter, 0, maskLen);
 
       //assign the results to the global array, no one shares an alignment index so it should be thread safe....
-      alignments->query_begin[alignment_index] = result->ref_begin1;
-      alignments->query_end[alignment_index] = result->ref_end1;
-      alignments->ref_begin[alignment_index] = result->read_begin1;
-      alignments->ref_end[alignment_index] = result->read_end1;
+      alignments->query_begin[alignment_index] = result->read_begin1;
+      alignments->query_end[alignment_index] = result->read_end1;
+      alignments->ref_begin[alignment_index] = result->ref_begin1;
+      alignments->ref_end[alignment_index] = result->ref_end1;
       alignments->top_scores[alignment_index] = result->score1;
 
       //destroy the result since ssw_init and ssw_align allocates something..

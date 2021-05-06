@@ -240,23 +240,23 @@ void dnaSampleRun(string refFile, string queFile, string out_file, int multiplie
 
   gpu_bsw_driver::gpu_cpu_driver_dna(G_sequencesB, G_sequencesA,&results_test, scores, 0.5, num_threads);
 
-  // for(int k = 0; k < G_sequencesA.size(); k++){
-  //       results_file<<results_test.top_scores[k]<<"\t"
-  //               <<results_test.ref_begin[k]<<"\t"
-  //               <<results_test.ref_end[k] - 1<<"\t"
-  //               <<results_test.query_begin[k]<<"\t"
-  //               <<results_test.query_end[k] - 1
-  //               <<endl;
-  // }
-  // results_file.flush();
-  // results_file.close();
+  for(int k = 0; k < G_sequencesA.size(); k++){
+        results_file<<results_test.top_scores[k]<<"\t"
+                <<results_test.ref_begin[k]<<"\t"
+                <<results_test.ref_end[k] - 1<<"\t"
+                <<results_test.query_begin[k]<<"\t"
+                <<results_test.query_end[k] - 1
+                <<endl;
+  }
+  results_file.flush();
+  results_file.close();
 
   free_alignments(&results_test); //BW NOTE: these get allocated by kernel driver dna, there is enough info to do this outside/before the function call as well..
-  long long int total_cells = 0;
-  for(int l = 0; l < G_sequencesA.size(); l++){
-    total_cells += G_sequencesA.at(l).size()*G_sequencesB.at(l).size();
-  }
-  cout <<"Total Cells:"<<total_cells<<endl;
+  // long long int total_cells = 0;
+  // for(int l = 0; l < G_sequencesA.size(); l++){
+  //   total_cells += G_sequencesA.at(l).size()*G_sequencesB.at(l).size();
+  // }
+  // cout <<"Total Cells:"<<total_cells<<endl;
 
   //gpu_bsw_driver::verificationTest(resultFile, results_test.g_alAbeg, results_test.g_alBbeg, results_test.g_alAend, results_test.g_alBend);
 
