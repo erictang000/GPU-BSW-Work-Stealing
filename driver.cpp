@@ -326,7 +326,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                 
         size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
         unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
-        unsigned max_alns_sugg = 40000;
+        unsigned max_alns_sugg = 20000;
         max_alns_gpu = max_alns_gpu > max_alns_sugg ? max_alns_sugg : max_alns_gpu;
         batch_size = max_alns_gpu; 
         std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
