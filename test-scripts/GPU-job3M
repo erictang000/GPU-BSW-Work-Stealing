@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --job-name=gpu_cpu_ws
+#SBATCH --output=gpu_cpu_ws.out
+#SBATCH --error=gpu_cpu_ws.err
+#SBATCH --qos=debug
+#SBATCH --time=10
+#SBATCH --nodes=1
+#SBATCH --ntasks=10       # 10 CPU core to Work Steal
+#SBATCH --gres=gpu:1     # Request 1 GPU
+
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 10
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 9
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 8
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 7
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 6
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 5
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 4
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 3
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 2
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 1
