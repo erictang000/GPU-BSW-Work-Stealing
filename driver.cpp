@@ -73,10 +73,10 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
       //the way the result data structure points to more arrays of individual results makes it difficult to 
       //have this function just return a single result, and let the caller handle it, this function should be
       //more attached to the alignment results data, in either event passint it in is super weird, but this is the explanation.
-      alignments->query_begin[alignment_index] = result->ref_begin1;
-      alignments->query_end[alignment_index] = result->ref_end1;
-      alignments->ref_begin[alignment_index] = result->read_begin1;
-      alignments->ref_end[alignment_index] = result->read_end1;
+      alignments->query_begin[alignment_index] = result->read_begin1;
+      alignments->query_end[alignment_index] = result->read_end1;
+      alignments->ref_begin[alignment_index] = result->ref_begin1;
+      alignments->ref_end[alignment_index] = result->ref_end1;
       alignments->top_scores[alignment_index] = result->score1;
 
       //destroy the result since ssw_init and ssw_align allocates something..
