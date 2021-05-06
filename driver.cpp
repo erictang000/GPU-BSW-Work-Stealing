@@ -75,7 +75,7 @@ void cpu_do_one_alignment(std::string read, std::string contig, gpu_bsw_driver::
       //more attached to the alignment results data, in either event passint it in is super weird, but this is the explanation.
 
       //also both "ends" are off by one???
-      
+
       alignments->query_begin[alignment_index] = result->read_begin1;
       alignments->query_end[alignment_index] = result->read_end1 + 1;
       alignments->ref_begin[alignment_index] = result->ref_begin1;
@@ -365,7 +365,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         int received_batch_size = 0;
         //GPU START WORK
-        while(atomic_alignment_index < totalAlignments)
+        static const int GPU_BATCH_BLOCK = 20000;
+        while(atomic_alignment_index < totalAlignments - GPU_BATCH_BLOCK)
         {
 
           //********* GPU THREAD WORK
@@ -430,7 +431,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         // int work_stolen_so_far;
         // #pragma omp atomic read
         // work_stolen_so_far = work_stolen_count;
-
+        static const int CPU_BATCH_BLOCK = 20000;
         while(atomic_alignment_index < totalAlignments)
         {
 
