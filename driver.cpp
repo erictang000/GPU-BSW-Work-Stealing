@@ -404,7 +404,154 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           std::vector<std::string> sequencesA(contigs.begin()+thread_current_alignment_index_start, contigs.begin()+thread_current_alignment_index_end);
           std::vector<std::string> sequencesB(reads.begin()+thread_current_alignment_index_start, reads.begin()+thread_current_alignment_index_end);
 
-           gpu_do_batch_alignments(sequencesA, sequencesB, scores, received_batch_size, alignments, thread_current_alignment_index_start, strA, strB, strA_d, strB_d, offsetA_h, offsetB_h, maxContigSize, maxReadSize, streams_cuda);
+//           gpu_do_batch_alignments(sequencesA, sequencesB, scores, received_batch_size, alignments, thread_current_alignment_index_start, strA, strB, strA_d, strB_d, offsetA_h, offsetB_h, maxContigSize, maxReadSize, streams_cuda);
+//START UNROLLED FUNCTION
+              {
+                  auto packing_start = NOW;
+                  int alignment_index = thread_current_alignment_index_start;
+
+                  short matchScore = scores[0], misMatchScore = scores[1], startGap = scores[2], extendGap = scores[3];
+
+                  //pointers to where in the alignment results we are going to return into...
+                  short* alAbeg = alignments->ref_begin + alignment_index;
+                  short* alBbeg = alignments->query_begin + alignment_index;
+                  short* alAend = alignments->ref_end + alignment_index;
+                  short* alBend = alignments->query_end + alignment_index;  // memory on CPU for copying the results
+                  short* top_scores_cpu = alignments->top_scores + alignment_index;
+
+                  gpu_alignments gpu_data(received_batch_size); //i guess this cleans itself up when it leaves scope...
+
+                  int blocksLaunched = received_batch_size; //0;
+
+                  long unsigned running_sum = 0;
+                  int sequences_per_stream = (blocksLaunched) / NSTREAMS;
+                  int sequences_stream_leftover = (blocksLaunched) % NSTREAMS;
+                  long unsigned half_length_A = 0;
+                  long unsigned half_length_B = 0;
+
+                  auto start_cpu = NOW;
+
+                  for(int i = 0; i < sequencesA.size(); i++)
+                  {
+                      running_sum +=sequencesA[i].size();
+                      offsetA_h[i] = running_sum;//sequencesA[i].size();
+                      if(i == sequences_per_stream - 1){
+                          half_length_A = running_sum;
+                          running_sum = 0;
+                        }
+                  }
+                  long unsigned totalLengthA = half_length_A + offsetA_h[sequencesA.size() - 1];
+
+                  running_sum = 0;
+                  for(int i = 0; i < sequencesB.size(); i++)
+                  {
+                      running_sum +=sequencesB[i].size();
+                      offsetB_h[i] = running_sum; //sequencesB[i].size();
+                      if(i == sequences_per_stream - 1){
+                        half_length_B = running_sum;
+                        running_sum = 0;
+                      }
+                  }
+                  long unsigned totalLengthB = half_length_B + offsetB_h[sequencesB.size() - 1];
+
+                  auto end_cpu = NOW;
+                  std::chrono::duration<double> cpu_dur = end_cpu - start_cpu;
+
+                  //total_time_cpu += cpu_dur.count();
+                  long unsigned offsetSumA = 0;
+                  long unsigned offsetSumB = 0;
+
+                  //BW NOTE: strA and strB live in host memory, per thread, this is copying the sequences to there.
+                  //         sequencesA and sequencesB was constructed at the beginning of the loop, it is all the 
+                  //         query/ref sequences per iteration...
+
+                  for(int i = 0; i < sequencesA.size(); i++)
+                  {
+                      char* seqptrA = strA + offsetSumA;
+                      memcpy(seqptrA, sequencesA[i].c_str(), sequencesA[i].size());
+                      char* seqptrB = strB + offsetSumB;
+                      memcpy(seqptrB, sequencesB[i].c_str(), sequencesB[i].size());
+                      offsetSumA += sequencesA[i].size();
+                      offsetSumB += sequencesB[i].size();
+                  }
+
+                  auto packing_end = NOW;
+                  std::chrono::duration<double> packing_dur = packing_end - packing_start;
+
+                  //total_packing += packing_dur.count();
+
+                  asynch_mem_copies_htd(&gpu_data, offsetA_h, offsetB_h, strA, strA_d, strB, strB_d, half_length_A, half_length_B, totalLengthA, totalLengthB, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+
+
+                  //BW NOTE: minSize is the lesser of the biggest query or reference string.
+                  unsigned minSize = (maxReadSize < maxContigSize) ? maxReadSize : maxContigSize;
+                  unsigned totShmem = 3 * (minSize + 1) * sizeof(short);
+                  unsigned alignmentPad = 4 + (4 - totShmem % 4);
+                  size_t   ShmemBytes = totShmem + alignmentPad;
+                  if(ShmemBytes > 48000)
+                      cudaFuncSetAttribute(gpu_bsw::sequence_dna_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, ShmemBytes);
+
+                  cudaEvent_t steal_event0, steal_event1;
+                  int num_steal_loops = 0;
+                  cudaEventCreate(&steal_event0);
+                  cudaEventCreate(&steal_event1);        
+
+                  gpu_bsw::sequence_dna_kernel<<<sequences_per_stream, minSize, ShmemBytes, streams_cuda[0]>>>(
+                      strA_d, strB_d, gpu_data.offset_ref_gpu, gpu_data.offset_query_gpu, gpu_data.ref_start_gpu,
+                      gpu_data.ref_end_gpu, gpu_data.query_start_gpu, gpu_data.query_end_gpu, gpu_data.scores_gpu, matchScore, misMatchScore, startGap, extendGap);
+                  cudaEventRecord(steal_event0,streams_cuda[0]);
+                  cudaErrchk(cudaGetLastError());
+
+                  gpu_bsw::sequence_dna_kernel<<<sequences_per_stream + sequences_stream_leftover, minSize, ShmemBytes, streams_cuda[1]>>>(
+                      strA_d + half_length_A, strB_d + half_length_B, gpu_data.offset_ref_gpu + sequences_per_stream, gpu_data.offset_query_gpu + sequences_per_stream,
+                        gpu_data.ref_start_gpu + sequences_per_stream, gpu_data.ref_end_gpu + sequences_per_stream, gpu_data.query_start_gpu + sequences_per_stream, gpu_data.query_end_gpu + sequences_per_stream,
+                        gpu_data.scores_gpu + sequences_per_stream, matchScore, misMatchScore, startGap, extendGap);
+                  cudaEventRecord(steal_event1,streams_cuda[1]);
+                  cudaErrchk(cudaGetLastError());
+
+                  //WORK STEAL HERE
+                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event0) == cudaErrorNotReady){
+                    num_steal_loops++;
+                  }//exiting the loop means the events were synchronized. the next line cannot happen until the kernels are done anyway.
+
+                  // copyin back end index so that we can find new min
+                  asynch_mem_copies_dth_mid(&gpu_data, alAend, alBend, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+
+                  //this also saves out the results of the end locations... into alAend and alBend
+
+                  cudaStreamSynchronize (streams_cuda[0]);
+                  cudaStreamSynchronize (streams_cuda[1]);
+
+                  auto sec_cpu_start = NOW;
+                  int newMin = get_new_min_length(alAend, alBend, blocksLaunched); // find the new largest of smaller lengths
+                  auto sec_cpu_end = NOW;
+                  std::chrono::duration<double> dur_sec_cpu = sec_cpu_end - sec_cpu_start;
+                  //total_time_cpu += dur_sec_cpu.count();
+
+                  gpu_bsw::sequence_dna_reverse<<<sequences_per_stream, newMin, ShmemBytes, streams_cuda[0]>>>(
+                          strA_d, strB_d, gpu_data.offset_ref_gpu, gpu_data.offset_query_gpu, gpu_data.ref_start_gpu,
+                          gpu_data.ref_end_gpu, gpu_data.query_start_gpu, gpu_data.query_end_gpu, gpu_data.scores_gpu, matchScore, misMatchScore, startGap, extendGap);
+                  cudaEventRecord(steal_event0,streams_cuda[0]);
+                  cudaErrchk(cudaGetLastError());
+
+                  gpu_bsw::sequence_dna_reverse<<<sequences_per_stream + sequences_stream_leftover, newMin, ShmemBytes, streams_cuda[1]>>>(
+                          strA_d + half_length_A, strB_d + half_length_B, gpu_data.offset_ref_gpu + sequences_per_stream, gpu_data.offset_query_gpu + sequences_per_stream ,
+                          gpu_data.ref_start_gpu + sequences_per_stream, gpu_data.ref_end_gpu + sequences_per_stream, gpu_data.query_start_gpu + sequences_per_stream, gpu_data.query_end_gpu + sequences_per_stream,
+                          gpu_data.scores_gpu + sequences_per_stream, matchScore, misMatchScore, startGap, extendGap);
+                  cudaEventRecord(steal_event1,streams_cuda[1]);            
+                  cudaErrchk(cudaGetLastError());
+
+                  //WORK STEAL HERE
+                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event0) == cudaErrorNotReady){
+                    num_steal_loops++;
+                  }
+
+
+
+                  //this copies the results from gpu_data out to a pointer of where the A and B results have their "start" query but also named beg here.
+                  asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+                  }
+//END UNROLLED GPU FUNCTION
 
           #pragma omp atomic read
           atomic_alignment_index = total_work_alignment_index;
