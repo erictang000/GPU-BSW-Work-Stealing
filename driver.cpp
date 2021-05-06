@@ -358,6 +358,11 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         //END CUDA MEMORY
 
+        //intra-work steal variables
+        int8_t* current_read_numeric = (int8_t*)malloc(s1);   //this is a sore point in the code, we really want something better... i would be happier with each caller to pass in its own storage.
+        int8_t* current_contig_numeric = (int8_t*)malloc(s1); //taking values from the example, ssw usually does a realloc schme thats weird.
+
+
         //END GPU SETUP
         uint64_t atomic_alignment_index;
         #pragma omp atomic read
@@ -510,7 +515,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   cudaErrchk(cudaGetLastError());
 
                   //WORK STEAL HERE
-                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event0) == cudaErrorNotReady){
+                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
                     num_steal_loops++;
                   }//exiting the loop means the events were synchronized. the next line cannot happen until the kernels are done anyway.
 
@@ -542,8 +547,23 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   cudaErrchk(cudaGetLastError());
 
                   //WORK STEAL HERE
-                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event0) == cudaErrorNotReady){
-                    num_steal_loops++;
+                  while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
+                    //num_steal_loops++;
+                    int intra_work_steal_index;
+                    #pragma omp atomic capture
+                    intra_work_steal_index=total_work_alignment_index++; 
+
+                    if(intra_work_steal_index < totalAlignments)
+                    {
+                      auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
+                      auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
+                      cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+                      
+                      #pragma omp atomic update
+                      work_stolen_count++;
+                    }
+
+
                   }
 
 
@@ -556,6 +576,9 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           #pragma omp atomic read
           atomic_alignment_index = total_work_alignment_index;
         }
+
+        free(current_read_numeric);
+        free(current_contig_numeric);
 
         //GPU END WORK
 
