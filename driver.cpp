@@ -241,7 +241,7 @@ void gpu_do_batch_alignments(std::vector<std::string> sequencesA, std::vector<st
 }
 
 void
-gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor, int num_threads)
+gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scores[4], float factor, int num_threads, int host_should_work)
 {
 
     bool use_gpus = true;
@@ -515,21 +515,24 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   cudaErrchk(cudaGetLastError());
 
                   //WORK STEAL HERE
-                  // while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
-                  //   int intra_work_steal_index;
-                  //   #pragma omp atomic capture
-                  //   intra_work_steal_index=total_work_alignment_index++; 
+                  if(host_should_work != 0)
+                  {
+                    while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
+                      int intra_work_steal_index;
+                      #pragma omp atomic capture
+                      intra_work_steal_index=total_work_alignment_index++; 
 
-                  //   if(intra_work_steal_index < totalAlignments)
-                  //   {
-                  //     auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
-                  //     auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
-                  //     cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
-                      
-                  //     #pragma omp atomic update
-                  //     work_stolen_count++;
-                  //   }
-                  // }
+                      if(intra_work_steal_index < totalAlignments)
+                      {
+                        auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
+                        auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
+                        cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+                        
+                        #pragma omp atomic update
+                        work_stolen_count++;
+                      }
+                    }
+                  }
 
                   // copyin back end index so that we can find new min
                   asynch_mem_copies_dth_mid(&gpu_data, alAend, alBend, sequences_per_stream, sequences_stream_leftover, streams_cuda);
@@ -559,21 +562,24 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   cudaErrchk(cudaGetLastError());
 
                   //WORK STEAL HERE
-                  // while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
-                  //   int intra_work_steal_index;
-                  //   #pragma omp atomic capture
-                  //   intra_work_steal_index=total_work_alignment_index++; 
+                  if(host_should_work != 0)
+                  {
+                    while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
+                      int intra_work_steal_index;
+                      #pragma omp atomic capture
+                      intra_work_steal_index=total_work_alignment_index++; 
 
-                  //   if(intra_work_steal_index < totalAlignments)
-                  //   {
-                  //     auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
-                  //     auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
-                  //     cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
-                      
-                  //     #pragma omp atomic update
-                  //     work_stolen_count++;
-                  //   }
-                  // }
+                      if(intra_work_steal_index < totalAlignments)
+                      {
+                        auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
+                        auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
+                        cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+                        
+                        #pragma omp atomic update
+                        work_stolen_count++;
+                      }
+                    }
+                  }
 
 
 
@@ -590,6 +596,12 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         free(current_contig_numeric);
 
         //GPU END WORK
+        cudaErrchk(cudaFree(strA_d));
+        cudaErrchk(cudaFree(strB_d));
+        cudaFreeHost(offsetA_h);
+        cudaFreeHost(offsetB_h);
+        cudaFreeHost(strA);
+        cudaFreeHost(strB);
 
       }
       else

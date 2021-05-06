@@ -147,7 +147,7 @@ void proteinSampleRun(string refFile, string queFile, string out_file){
 }
 
 
-void dnaSampleRun(string refFile, string queFile, string out_file, int multiplier, int num_threads){
+void dnaSampleRun(string refFile, string queFile, string out_file, int multiplier, int num_threads, int host_should_work){
   vector<string> G_sequencesA,
       G_sequencesB;
 
@@ -238,7 +238,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file, int multiplie
 
   //gpu_bsw_driver::kernel_driver_dna(G_sequencesB, G_sequencesA,&results_test, scores, 0.5);
 
-  gpu_bsw_driver::gpu_cpu_driver_dna(G_sequencesB, G_sequencesA,&results_test, scores, 0.5, num_threads);
+  gpu_bsw_driver::gpu_cpu_driver_dna(G_sequencesB, G_sequencesA,&results_test, scores, 0.5, num_threads,host_should_work);
 
   for(int k = 0; k < G_sequencesA.size(); k++){
         results_file<<results_test.top_scores[k]<<"\t"
@@ -271,17 +271,18 @@ main(int argc, char* argv[])
  	proteinSampleRun(argv[2], argv[3], argv[4]);
  }else{
   //remove me after done perf testing...
-  if(argc < 7)
+  if(argc < 8)
   {
-    std::cout << "Testing is enabled, the params are [ref file] [query file] [out file] [multiplier] [num threads]" << std::endl;
+    std::cout << "Testing is enabled, the params are [ref file] [query file] [out file] [multiplier] [num threads] [host_should_work]" << std::endl;
     return 1;
   }
   
   long multiplier = strtol(argv[5], NULL, 10);
   long num_threads = strtol(argv[6], NULL, 10);
+  long host_should_work = strtol(argv[7], NULL, 10);
   //no error checking
 
- 	dnaSampleRun(argv[2], argv[3], argv[4], multiplier, num_threads);
+ 	dnaSampleRun(argv[2], argv[3], argv[4], multiplier, num_threads, host_should_work);
  }
 
     return 0;
