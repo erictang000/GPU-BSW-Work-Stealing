@@ -234,7 +234,7 @@ void dnaSampleRun(string refFile, string queFile, string out_file, int multiplie
 
 
   short scores[] = {1, -3, -3, -1};
-  // ofstream results_file(out_file);
+  ofstream results_file(out_file);
 
   //gpu_bsw_driver::kernel_driver_dna(G_sequencesB, G_sequencesA,&results_test, scores, 0.5);
 
