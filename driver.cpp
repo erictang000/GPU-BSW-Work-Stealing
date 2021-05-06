@@ -516,8 +516,21 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
                   //WORK STEAL HERE
                   while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
-                    num_steal_loops++;
-                  }//exiting the loop means the events were synchronized. the next line cannot happen until the kernels are done anyway.
+                    //num_steal_loops++;
+                    int intra_work_steal_index;
+                    #pragma omp atomic capture
+                    intra_work_steal_index=total_work_alignment_index++; 
+
+                    if(intra_work_steal_index < totalAlignments)
+                    {
+                      auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
+                      auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
+                      cpu_do_one_alignment(current_read,current_contig,alignments,intra_work_steal_index,mat,n,startGap,extendGap,current_read_numeric,current_contig_numeric);
+                      
+                      #pragma omp atomic update
+                      work_stolen_count++;
+                    }
+                  }
 
                   // copyin back end index so that we can find new min
                   asynch_mem_copies_dth_mid(&gpu_data, alAend, alBend, sequences_per_stream, sequences_stream_leftover, streams_cuda);
