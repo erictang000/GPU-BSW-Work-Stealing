@@ -302,7 +302,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
       cudaGetDeviceCount(&deviceCount);
     }
 
-    std::cout << "Number of GPU Threads: " << deviceCount << std::endl; 
+    std::cout << "Number of GPU Threads: " << deviceCount << " host stealing is set to: " << host_should_work << std::endl; 
 
     size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
 
@@ -341,7 +341,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         }
 
         //SETUP CUDA MEMORY  //FIXME?: the mallocs are using a size of a differen't type...
-        std::cout << "Setting up CUDA Memory!\n";
+        //std::cout << "Setting up CUDA Memory!\n";
         unsigned* offsetA_h;
         cudaMallocHost(&offsetA_h, sizeof(int)* batch_size);
         unsigned* offsetB_h;
@@ -676,8 +676,8 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
     auto end  = NOW;
     std::chrono::duration<double> diff = end - start;
-    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
-    std::cout << "Work Stolen: " << work_stolen_count << "=> " << round((float)work_stolen_count/(float)totalAlignments * 100) << "%" << std::endl;
+    std::cout << "Total Alignments:"<<totalAlignments<<" | "<<"Max Reference Size:"<<maxContigSize<<" | "<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time: "<< diff.count() << " seconds" << std::endl;
+    std::cout << "Work Stolen:     " << work_stolen_count << " == " << round((float)work_stolen_count/(float)totalAlignments * 100) << "%" << std::endl;
 }
 
 
