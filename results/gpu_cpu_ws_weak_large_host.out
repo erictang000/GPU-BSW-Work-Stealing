@@ -1,70 +1,70 @@
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:3000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 4.95807 seconds
-Work Stolen:     111352 == 4%
+Total Execution Time: 5.04633 seconds
+Work Stolen:     19821 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:6000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 9.89125 seconds
-Work Stolen:     222149 == 4%
+Total Execution Time: 10.1085 seconds
+Work Stolen:     38966 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:9000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 14.8313 seconds
-Work Stolen:     331440 == 4%
+Total Execution Time: 15.0835 seconds
+Work Stolen:     59014 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:12000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 19.7907 seconds
-Work Stolen:     442183 == 4%
+Total Execution Time: 20.1994 seconds
+Work Stolen:     77842 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:15000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 24.8823 seconds
-Work Stolen:     551739 == 4%
+Total Execution Time: 25.2653 seconds
+Work Stolen:     97448 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:18000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 29.9693 seconds
-Work Stolen:     656027 == 4%
+Total Execution Time: 30.3189 seconds
+Work Stolen:     119495 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:21000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 34.6491 seconds
-Work Stolen:     778289 == 4%
+Total Execution Time: 35.4915 seconds
+Work Stolen:     138612 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:24000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 39.7857 seconds
-Work Stolen:     889365 == 4%
+Total Execution Time: 40.4659 seconds
+Work Stolen:     157391 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:27000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 44.7216 seconds
-Work Stolen:     1000200 == 4%
+Total Execution Time: 45.5952 seconds
+Work Stolen:     177201 == 1%
 Number of GPU Threads: 1 host stealing is set to: 1
-SSW GPU-CPU DRIVER STARTED w/7 threads!
+SSW GPU-CPU DRIVER STARTED w/1 threads!
 Mem (bytes) avail on device 0:16945512448
 Mem (bytes) using on device 0:8.47276e+09
 Total Alignments:30000000 | Max Reference Size:579 | Max Query Size:150
-Total Execution Time: 49.7767 seconds
-Work Stolen:     1111935 == 4%
+Total Execution Time: 51.1487 seconds
+Work Stolen:     188625 == 1%
