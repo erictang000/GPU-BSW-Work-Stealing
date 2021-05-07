@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -C gpu
 #SBATCH -G 1
-#SBATCH --job-name=gpu_cpu_ws_weak_large
-#SBATCH --output=gpu_cpu_ws_weak_large.out
-#SBATCH --error=gpu_cpu_ws_weak_large.err
+#SBATCH --job-name=gpu_cpu_ws_weak_large_nocpu
+#SBATCH --output=gpu_cpu_ws_weak_large_nocpu.out
+#SBATCH --error=gpu_cpu_ws_weak_large_nocpu.err
 #SBATCH -t 30
 #SBATCH -c 10
 
