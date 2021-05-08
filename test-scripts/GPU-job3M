@@ -1,13 +1,14 @@
 #!/bin/bash
 #SBATCH -C gpu
-#SBATCH -G 2
-#SBATCH --job-name=gpu2_cpu_ws
-#SBATCH --output=gpu2_cpu_ws.out
-#SBATCH --error=gpu2_cpu_ws.err
+#SBATCH -G 1
+#SBATCH --job-name=gpu1_cpu2x_ws
+#SBATCH --output=gpu1_cpu2x_ws.out
+#SBATCH --error=gpu1_cpu2x_ws.err
 #SBATCH -t 30
 #SBATCH -c 20
 
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 2 0
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 1 0
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 1 1
 srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 2 1
 srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 3 1
 srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 4 1
