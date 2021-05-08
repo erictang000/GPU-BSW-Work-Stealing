@@ -1,19 +1,29 @@
 #!/bin/bash
 #SBATCH -C gpu
-#SBATCH -G 1
-#SBATCH --job-name=gpu_cpu_ws
-#SBATCH --output=gpu_cpu_ws.out
-#SBATCH --error=gpu_cpu_ws.err
-#SBATCH -t 10
-#SBATCH -c 10
+#SBATCH -G 2
+#SBATCH --job-name=gpu2_cpu_ws
+#SBATCH --output=gpu2_cpu_ws.out
+#SBATCH --error=gpu2_cpu_ws.err
+#SBATCH -t 30
+#SBATCH -c 20
 
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 10 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 9 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 8 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 7 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 6 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 5 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 4 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 3 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 2 0
 srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 2 1
-srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 3 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 4 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 5 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 6 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 7 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 8 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 9 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 10 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 11 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 12 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 13 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 14 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 15 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 16 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 17 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 18 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 19 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 20 1
