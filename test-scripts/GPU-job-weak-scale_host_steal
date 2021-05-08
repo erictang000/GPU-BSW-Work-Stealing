@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH -C gpu
+#SBATCH -G 1
+#SBATCH --job-name=gpu_cpu_ws_weak_small_nocpu
+#SBATCH --output=gpu_cpu_ws_weak_small_nocpu.out
+#SBATCH --error=gpu_cpu_ws_weak_small_nocpu.err
+#SBATCH -t 10
+#SBATCH -c 10
+
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 1 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 10 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 20 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 30 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 40 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 50 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 60 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 70 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 80 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 90 1 1
+srun ./program_gpu dna ../test-data/dna-reference.fasta ../test-data/dna-query.fasta ./out_file 100 1 1
