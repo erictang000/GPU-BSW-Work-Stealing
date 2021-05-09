@@ -1,0 +1,11 @@
+srun: error: cgpu14: task 0: Segmentation fault
+srun: Terminating job step 1897029.12
+GPUassert: invalid argument /global/homes/e/erictang/GPU-BSW/utils.cpp 36 cpu:1
+srun: error: cgpu14: task 0: Exited with exit code 1
+srun: Terminating job step 1897029.13
+srun: error: cgpu14: task 0: Segmentation fault
+srun: Terminating job step 1897029.14
+srun: error: cgpu14: task 0: Segmentation fault
+srun: Terminating job step 1897029.16
+srun: error: cgpu14: task 0: Segmentation fault
+srun: Terminating job step 1897029.18

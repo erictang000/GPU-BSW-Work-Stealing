@@ -1,0 +1,10 @@
+srun: error: cgpu09: task 0: Segmentation fault
+srun: Terminating job step 1897166.1
+srun: error: cgpu09: task 0: Segmentation fault
+srun: Terminating job step 1897166.2
+srun: error: cgpu09: task 0: Segmentation fault
+srun: Terminating job step 1897166.5
+srun: error: cgpu09: task 0: Segmentation fault
+srun: Terminating job step 1897166.7
+srun: error: cgpu09: task 0: Segmentation fault
+srun: Terminating job step 1897166.10

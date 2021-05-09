@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH -C gpu
+#SBATCH -G 2
+#SBATCH --job-name=muaaz_set3
+#SBATCH --output=muaaz_set3.out
+#SBATCH --error=muaaz_set3.err
+#SBATCH -t 40
+#SBATCH -c 20
+
+
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 8 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 9 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 10 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 11 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 12 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 13 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 14 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 15 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 16 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 17 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 18 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 19 1
+srun ./program_gpu dna /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/ref_set_3.fasta /global/cscratch1/sd/mgawan/sw-benchmarks/dna-testing/read_set_3.fasta ./out_file 1 20 1

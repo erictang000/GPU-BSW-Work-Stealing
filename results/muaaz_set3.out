@@ -1,0 +1,82 @@
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/8 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 37.2762 seconds
+Work Stolen:     373785 == 2%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/9 threads!
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/10 threads!
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/11 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 37.7286 seconds
+Work Stolen:     468186 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/12 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 37.6578 seconds
+Work Stolen:     474539 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/13 threads!
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/14 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 37.8556 seconds
+Work Stolen:     482356 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/15 threads!
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/16 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 38.9844 seconds
+Work Stolen:     508750 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/17 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 38.6848 seconds
+Work Stolen:     512543 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/18 threads!
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/19 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 38.9622 seconds
+Work Stolen:     524913 == 3%
+Number of GPU Threads: 2 host stealing is set to: 1
+SSW GPU-CPU DRIVER STARTED w/20 threads!
+Mem (bytes) avail on device 0:16945512448
+Mem (bytes) using on device 0:8.47276e+09
+Mem (bytes) avail on device 1:16945512448
+Mem (bytes) using on device 1:8.47276e+09
+Total Alignments:16308186 | Max Reference Size:1131 | Max Query Size:288
+Total Execution Time: 38.9897 seconds
+Work Stolen:     531482 == 3%
