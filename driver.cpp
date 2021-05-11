@@ -286,10 +286,14 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     int batch_size = 100; //different for gpu/cpu?
 
     auto start = NOW;
-
+    
     //shared variables, should also only be touched in atomic or critical regions...
     uint64_t work_stolen_count=0;
-    uint64_t total_work_alignment_index=0;
+    uint64_t queue1_index = 0;
+    uint64_t queue2_index = totalAlignments / 2;
+    uint64_t queue1_end = queue2_index;
+    uint64_t queue2_end = totalAlignments;
+
 
     int deviceCount;
 
@@ -308,7 +312,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
     //creates a parallel region, explicitly stating the variables we want to be shared.
 
-    #pragma omp parallel firstprivate(batch_size) shared(work_stolen_count,total_work_alignment_index)
+    #pragma omp parallel firstprivate(batch_size) shared(work_stolen_count,queue1_index,queue2_index)
     {
       //assume one thread per device and those threads share the id with the device.
       int my_cpu_id = omp_get_thread_num();  //we really need to decide on some sort of formating, camel case vs _, choose 1!
@@ -365,13 +369,23 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         //END GPU SETUP
         uint64_t atomic_alignment_index;
-        #pragma omp atomic read
-        atomic_alignment_index = total_work_alignment_index;
+        uint64_t end_index;
+        if (my_cpu_id % 2 == 0) {
+            #pragma omp atomic read
+            atomic_alignment_index = queue1_index;
+            end_index = queue1_end;
+        } else {
+            #pragma omp atomic read
+            atomic_alignment_index = queue2_index;
+            end_index = queue2_end;
+        }
+           
+        
 
         int received_batch_size = 0;
         //GPU START WORK
         //static const int GPU_BATCH_BLOCK = 20000;
-        while(atomic_alignment_index < totalAlignments)
+        while(atomic_alignment_index < end_index)
         {
 
           //********* GPU THREAD WORK
@@ -382,21 +396,29 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           //#pragma omp atomic capture
           #pragma omp critical //maybe doing too much for atomic, just use critical for now.
           { 
-            thread_current_alignment_index_start=total_work_alignment_index; 
-            if(thread_current_alignment_index_start + batch_size < totalAlignments)
+            thread_current_alignment_index_start= my_cpu_id % 2 == 0 ? queue1_index : queue2_index; 
+            if(thread_current_alignment_index_start + batch_size < end_index)
             {
-              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
+                if (my_cpu_id % 2 == 0) {
+                    thread_current_alignment_index_end = queue1_index+=batch_size;
+                } else {
+                    thread_current_alignment_index_end = queue2_index+=batch_size;
+                }
             }
             else
             {
               //take the last "batch"
-              total_work_alignment_index = totalAlignments;
-              thread_current_alignment_index_end = totalAlignments;
+              if (my_cpu_id % 2 == 0) {
+                  queue1_index = queue1_end;
+              } else {
+                  queue2_index = queue2_end;
+              }
+              thread_current_alignment_index_end = my_cpu_id % 2 == 0 ? queue1_end : queue2_end;
 
-              if(thread_current_alignment_index_start >= totalAlignments)
+              if(thread_current_alignment_index_start >= thread_current_alignment_index_end)
               {
                 //something bad happened, abort. that while loop might not be thread safe?
-                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
+                std::cout << "Warning Atomic Queue is Broken - GPU tried to grab elements not in it's queue!" << std::endl;
                 //assert
               }
             }            
@@ -519,10 +541,15 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   {
                     while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
                       int intra_work_steal_index;
-                      #pragma omp atomic capture
-                      intra_work_steal_index=total_work_alignment_index++; 
+                      if (my_cpu_id % 2 == 0) {
+                          #pragma omp atomic capture
+                          intra_work_steal_index = queue1_index++; 
+                      } else {
+                          #pragma omp atomic capture
+                          intra_work_steal_index = queue2_index++; 
+                      }
 
-                      if(intra_work_steal_index < totalAlignments)
+                      if(intra_work_steal_index < (my_cpu_id % 2 == 0 ? queue1_end : queue2_end))
                       {
                         auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
                         auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
@@ -566,10 +593,15 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
                   {
                     while(cudaEventQuery(steal_event0) == cudaErrorNotReady || cudaEventQuery(steal_event1) == cudaErrorNotReady){
                       int intra_work_steal_index;
-                      #pragma omp atomic capture
-                      intra_work_steal_index=total_work_alignment_index++; 
+                      if (my_cpu_id % 2 == 0) {
+                          #pragma omp atomic capture
+                          intra_work_steal_index = queue1_index++; 
+                      } else {
+                          #pragma omp atomic capture
+                          intra_work_steal_index = queue2_index++; 
+                      }
 
-                      if(intra_work_steal_index < totalAlignments)
+                      if(intra_work_steal_index < (my_cpu_id % 2 == 0 ? queue1_end : queue2_end))
                       {
                         auto  current_read = *(read_sequence_ptr+intra_work_steal_index);
                         auto  current_contig = *(contig_sequence_ptr+intra_work_steal_index);
@@ -589,7 +621,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 //END UNROLLED GPU FUNCTION
 
           #pragma omp atomic read
-          atomic_alignment_index = total_work_alignment_index;
+          atomic_alignment_index = my_cpu_id % 2 == 0 ? queue1_index : queue2_index;
         }
 
         free(current_read_numeric);
@@ -614,7 +646,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
         uint64_t atomic_alignment_index;
         #pragma omp atomic read
-        atomic_alignment_index = total_work_alignment_index;
+        atomic_alignment_index = my_cpu_id % 2 == 0 ? queue1_index : queue2_index;
 
         //CPU WORK LIMIT... the cpu should not try to do work as we near the end...maybe?
         //int CPU_LIMIT = totalAlignments * 0.50; //the GPU works at about 5% of the rate, so we should only try
@@ -623,7 +655,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
         // #pragma omp atomic read
         // work_stolen_so_far = work_stolen_count;
         //static const int CPU_BATCH_BLOCK = 20000;
-        while(atomic_alignment_index < totalAlignments)
+        while(atomic_alignment_index < (my_cpu_id % 2 == 0 ? queue1_end : queue2_end))
         {
 
           /********* DO CPU THREAD WORK  ****/
@@ -633,21 +665,29 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
 
           #pragma omp critical //too much for atomic
           { 
-            thread_current_alignment_index_start=total_work_alignment_index; 
-            if(thread_current_alignment_index_start + batch_size < totalAlignments)
+            thread_current_alignment_index_start=my_cpu_id % 2 == 0 ? queue1_index : queue2_index; 
+            if(thread_current_alignment_index_start + batch_size < (my_cpu_id % 2 == 0 ? queue1_end : queue2_end))
             {
-              thread_current_alignment_index_end = total_work_alignment_index+=batch_size;
+                if (my_cpu_id % 2 == 0) {
+                  thread_current_alignment_index_end = queue1_index+=batch_size;
+                } else {
+                    thread_current_alignment_index_end= queue2_index+=batch_size;
+                }
             }
             else
             {
               //take the last "batch"
-              total_work_alignment_index = totalAlignments;
-              thread_current_alignment_index_end = totalAlignments;
+              if (my_cpu_id % 2 == 0) {
+                  queue1_index = queue1_end;
+              } else {
+                  queue2_index = queue2_end;
+              }
+              thread_current_alignment_index_end = my_cpu_id % 2 == 0 ? queue1_end : queue2_end;
 
-              if(thread_current_alignment_index_start >= totalAlignments)
+              if(thread_current_alignment_index_start >= (my_cpu_id % 2 == 0 ? queue1_end : queue2_end))
               {
                 //something bad happened, abort. thankfully i've never seen this.
-                std::cout << "Warning Atomic Queue is Broken!" << std::endl;
+                std::cout << "Warning Atomic Queue is Broken - CPU thread tried to access outside of it's queue" << std::endl;
               }
             }          
           }
@@ -663,7 +703,7 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
           work_stolen_count+= (thread_current_alignment_index_end-thread_current_alignment_index_start);
 
           #pragma omp atomic read
-          atomic_alignment_index = total_work_alignment_index;
+          atomic_alignment_index = my_cpu_id % 2 == 0 ? queue1_index : queue2_index;
         }
         //if cpu free up the memory we used for processing
         free(current_read_numeric);
@@ -679,3 +719,249 @@ gpu_bsw_driver::gpu_cpu_driver_dna(std::vector<std::string> reads, std::vector<s
     std::cout << "Total Alignments:"<<totalAlignments<<" | "<<"Max Reference Size:"<<maxContigSize<<" | "<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time: "<< diff.count() << " seconds" << std::endl;
     std::cout << "Work Stolen:     " << work_stolen_count << " == " << round((float)work_stolen_count/(float)totalAlignments * 100) << "%" << std::endl;
 }
+
+void
+gpu_bsw_driver::kernel_driver_aa(std::vector<std::string> reads, std::vector<std::string> contigs, gpu_bsw_driver::alignment_results *alignments, short scoring_matrix[], short openGap, short extendGap, float factor)
+{
+    unsigned maxContigSize = getMaxLength(contigs);
+    unsigned maxReadSize = getMaxLength(reads);
+    unsigned totalAlignments = contigs.size(); // assuming that read and contig vectors are same length
+
+    short encoding_matrix[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                             23,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                             0,0,0,0,0,0,0,0,0,0,20,4,3,6,
+                             13,7,8,9,0,11,10,12,2,0,14,5,
+                             1,15,16,0,19,17,22,18,21};
+
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    omp_set_num_threads(deviceCount);// one OMP thread per GPU
+    std::cout<<"Number of available GPUs:"<<deviceCount<<"\n";
+
+    cudaDeviceProp prop[deviceCount];
+    for(int i = 0; i < deviceCount; i++)
+      cudaGetDeviceProperties(&prop[i], 0);
+
+    unsigned NBLOCKS             = totalAlignments;
+    unsigned alignmentsPerDevice = NBLOCKS / deviceCount;
+    unsigned leftOver_device     = NBLOCKS % deviceCount;
+    unsigned max_per_device = alignmentsPerDevice + leftOver_device;
+    
+    initialize_alignments(alignments, totalAlignments); // pinned memory allocation
+    auto start = NOW;
+    size_t tot_mem_req_per_aln = maxReadSize + maxContigSize + 2 * sizeof(int) + 5 * sizeof(short);
+    #pragma omp parallel
+    {
+
+      int my_cpu_id = omp_get_thread_num();
+      cudaSetDevice(my_cpu_id);
+      int myGPUid;
+      cudaGetDevice(&myGPUid);
+      float total_time_cpu = 0;
+      cudaStream_t streams_cuda[NSTREAMS];
+      for(int stm = 0; stm < NSTREAMS; stm++){
+        cudaStreamCreate(&streams_cuda[stm]);
+      }
+      if(my_cpu_id == 0)std::cout<<"Number of GPUs being used:"<<omp_get_num_threads()<<"\n";
+        size_t gpu_mem_avail = get_tot_gpu_mem(myGPUid);
+        unsigned max_alns_gpu = floor(((double)gpu_mem_avail*factor)/tot_mem_req_per_aln);
+        unsigned max_alns_sugg = 20000;
+        max_alns_gpu = max_alns_gpu > max_alns_sugg ? max_alns_sugg : max_alns_gpu;
+        int       its    = (max_per_device>max_alns_gpu)?(ceil((double)max_per_device/max_alns_gpu)):1;
+        std::cout<<"Mem (bytes) avail on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail<<"\n";
+        std::cout<<"Mem (bytes) using on device "<<myGPUid<<":"<<(long unsigned)gpu_mem_avail*factor<<"\n";
+
+      int BLOCKS_l = alignmentsPerDevice;
+      if(my_cpu_id == deviceCount - 1)
+          BLOCKS_l += leftOver_device;
+      unsigned leftOvers    = BLOCKS_l % its;
+      unsigned stringsPerIt = BLOCKS_l / its;
+      gpu_alignments gpu_data(stringsPerIt + leftOvers); // gpu mallocs
+      short *d_encoding_matrix, *d_scoring_matrix;
+      cudaErrchk(cudaMalloc(&d_encoding_matrix, ENCOD_MAT_SIZE * sizeof(short)));
+      cudaErrchk(cudaMalloc(&d_scoring_matrix, SCORE_MAT_SIZE * sizeof(short)));
+      cudaErrchk(cudaMemcpy(d_encoding_matrix, encoding_matrix, ENCOD_MAT_SIZE * sizeof(short), cudaMemcpyHostToDevice));
+      cudaErrchk(cudaMemcpy(d_scoring_matrix, scoring_matrix, SCORE_MAT_SIZE * sizeof(short), cudaMemcpyHostToDevice));
+
+      short* alAbeg = alignments->ref_begin + my_cpu_id * alignmentsPerDevice;
+      short* alBbeg = alignments->query_begin + my_cpu_id * alignmentsPerDevice;
+      short* alAend = alignments->ref_end + my_cpu_id * alignmentsPerDevice;
+      short* alBend = alignments->query_end + my_cpu_id * alignmentsPerDevice;  // memory on CPU for copying the results
+      short* top_scores_cpu = alignments->top_scores + my_cpu_id * alignmentsPerDevice;
+
+      unsigned* offsetA_h;// = new unsigned[stringsPerIt + leftOvers];
+      cudaMallocHost(&offsetA_h, sizeof(int)*(stringsPerIt + leftOvers));
+      unsigned* offsetB_h;// = new unsigned[stringsPerIt + leftOvers];
+      cudaMallocHost(&offsetB_h, sizeof(int)*(stringsPerIt + leftOvers));
+
+      char *strA_d, *strB_d;
+      cudaErrchk(cudaMalloc(&strA_d, maxContigSize * (stringsPerIt + leftOvers) * sizeof(char)));
+      cudaErrchk(cudaMalloc(&strB_d, maxReadSize *(stringsPerIt + leftOvers)* sizeof(char)));
+
+      char* strA;
+      cudaMallocHost(&strA, sizeof(char)*maxContigSize * (stringsPerIt + leftOvers));
+      char* strB;
+      cudaMallocHost(&strB, sizeof(char)* maxReadSize *(stringsPerIt + leftOvers));
+
+      float total_packing = 0;
+
+      auto start2 = NOW;
+      std::cout<<"loop begin\n";
+      for(int perGPUIts = 0; perGPUIts < its; perGPUIts++)
+      {
+          auto packing_start = NOW;
+          int                                      blocksLaunched = 0;
+          std::vector<std::string>::const_iterator beginAVec;
+          std::vector<std::string>::const_iterator endAVec;
+          std::vector<std::string>::const_iterator beginBVec;
+          std::vector<std::string>::const_iterator endBVec;
+          if(perGPUIts == its - 1)
+          {
+              beginAVec = contigs.begin() + ((alignmentsPerDevice * my_cpu_id) + perGPUIts * stringsPerIt);
+              endAVec = contigs.begin() + ((alignmentsPerDevice * my_cpu_id) + (perGPUIts + 1) * stringsPerIt) + leftOvers;  // so that each openmp thread has a copy of strings it needs to align
+              beginBVec = reads.begin() + ((alignmentsPerDevice * my_cpu_id) + perGPUIts * stringsPerIt);
+              endBVec = reads.begin() + ((alignmentsPerDevice * my_cpu_id) + (perGPUIts + 1) * stringsPerIt) + leftOvers;  // so that each openmp thread has a copy of strings it needs to align
+              blocksLaunched = stringsPerIt + leftOvers;
+          }
+          else
+          {
+              beginAVec = contigs.begin() + ((alignmentsPerDevice * my_cpu_id) + perGPUIts * stringsPerIt);
+              endAVec = contigs.begin() + (alignmentsPerDevice * my_cpu_id) + (perGPUIts + 1) * stringsPerIt; // so that each openmp thread has a copy of strings it needs to align
+              beginBVec = reads.begin() + ((alignmentsPerDevice * my_cpu_id) + perGPUIts * stringsPerIt);
+              endBVec = reads.begin() + (alignmentsPerDevice * my_cpu_id) +  (perGPUIts + 1) * stringsPerIt;  // so that each openmp thread has a copy of strings it needs to align
+              blocksLaunched = stringsPerIt;
+          }
+
+          std::vector<std::string> sequencesA(beginAVec, endAVec);
+          std::vector<std::string> sequencesB(beginBVec, endBVec);
+          unsigned running_sum = 0;
+          int sequences_per_stream = (blocksLaunched) / NSTREAMS;
+          int sequences_stream_leftover = (blocksLaunched) % NSTREAMS;
+          unsigned half_length_A = 0;
+          unsigned half_length_B = 0;
+
+          auto start_cpu = NOW;
+
+          for(int i = 0; i < sequencesA.size(); i++)
+          {
+              running_sum +=sequencesA[i].size();
+              offsetA_h[i] = running_sum;//sequencesA[i].size();
+              if(i == sequences_per_stream - 1){
+                  half_length_A = running_sum;
+                  running_sum = 0;
+                }
+          }
+          unsigned totalLengthA = half_length_A + offsetA_h[sequencesA.size() - 1];
+
+          running_sum = 0;
+          for(int i = 0; i < sequencesB.size(); i++)
+          {
+              running_sum +=sequencesB[i].size();
+              offsetB_h[i] = running_sum; //sequencesB[i].size();
+              if(i == sequences_per_stream - 1){
+                half_length_B = running_sum;
+                running_sum = 0;
+              }
+          }
+          unsigned totalLengthB = half_length_B + offsetB_h[sequencesB.size() - 1];
+
+          auto end_cpu = NOW;
+          std::chrono::duration<double> cpu_dur = end_cpu - start_cpu;
+
+          total_time_cpu += cpu_dur.count();
+          unsigned offsetSumA = 0;
+          unsigned offsetSumB = 0;
+
+          for(int i = 0; i < sequencesA.size(); i++)
+          {
+              char* seqptrA = strA + offsetSumA;
+              memcpy(seqptrA, sequencesA[i].c_str(), sequencesA[i].size());
+              char* seqptrB = strB + offsetSumB;
+              memcpy(seqptrB, sequencesB[i].c_str(), sequencesB[i].size());
+              offsetSumA += sequencesA[i].size();
+              offsetSumB += sequencesB[i].size();
+          }
+
+          auto packing_end = NOW;
+          std::chrono::duration<double> packing_dur = packing_end - packing_start;
+
+          total_packing += packing_dur.count();
+
+          asynch_mem_copies_htd(&gpu_data, offsetA_h, offsetB_h, strA, strA_d, strB, strB_d, half_length_A, half_length_B, totalLengthA, totalLengthB, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+          unsigned minSize = (maxReadSize < maxContigSize) ? maxReadSize : maxContigSize;
+          unsigned totShmem = 3 * (minSize + 1) * sizeof(short);
+          unsigned alignmentPad = 4 + (4 - totShmem % 4);
+          size_t   ShmemBytes = totShmem + alignmentPad;
+          if(ShmemBytes > 48000)
+              cudaFuncSetAttribute(gpu_bsw::sequence_dna_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, ShmemBytes);
+
+          gpu_bsw::sequence_aa_kernel<<<sequences_per_stream, minSize, ShmemBytes, streams_cuda[0]>>>(
+              strA_d, strB_d, gpu_data.offset_ref_gpu, gpu_data.offset_query_gpu, gpu_data.ref_start_gpu,
+              gpu_data.ref_end_gpu, gpu_data.query_start_gpu, gpu_data.query_end_gpu, gpu_data.scores_gpu,
+              openGap, extendGap, d_scoring_matrix, d_encoding_matrix);
+          cudaErrchk(cudaGetLastError());
+
+          gpu_bsw::sequence_aa_kernel<<<sequences_per_stream + sequences_stream_leftover, minSize, ShmemBytes, streams_cuda[1]>>>(
+              strA_d + half_length_A, strB_d + half_length_B, gpu_data.offset_ref_gpu + sequences_per_stream, gpu_data.offset_query_gpu + sequences_per_stream,
+                gpu_data.ref_start_gpu + sequences_per_stream, gpu_data.ref_end_gpu + sequences_per_stream, gpu_data.query_start_gpu + sequences_per_stream, gpu_data.query_end_gpu + sequences_per_stream,
+                gpu_data.scores_gpu + sequences_per_stream, openGap, extendGap, d_scoring_matrix, d_encoding_matrix);
+          cudaErrchk(cudaGetLastError());
+
+          // copyin back end index so that we can find new min
+          asynch_mem_copies_dth_mid(&gpu_data, alAend, alBend, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+
+          cudaStreamSynchronize (streams_cuda[0]);
+          cudaStreamSynchronize (streams_cuda[1]);
+
+          auto sec_cpu_start = NOW;
+          int newMin = get_new_min_length(alAend, alBend, blocksLaunched); // find the new largest of smaller lengths
+          auto sec_cpu_end = NOW;
+          std::chrono::duration<double> dur_sec_cpu = sec_cpu_end - sec_cpu_start;
+          total_time_cpu += dur_sec_cpu.count();
+
+          gpu_bsw::sequence_aa_reverse<<<sequences_per_stream, newMin, ShmemBytes, streams_cuda[0]>>>(
+                  strA_d, strB_d, gpu_data.offset_ref_gpu, gpu_data.offset_query_gpu, gpu_data.ref_start_gpu,
+                  gpu_data.ref_end_gpu, gpu_data.query_start_gpu, gpu_data.query_end_gpu, gpu_data.scores_gpu, openGap, extendGap, d_scoring_matrix, d_encoding_matrix);
+          cudaErrchk(cudaGetLastError());
+
+          gpu_bsw::sequence_aa_reverse<<<sequences_per_stream + sequences_stream_leftover, newMin, ShmemBytes, streams_cuda[1]>>>(
+                  strA_d + half_length_A, strB_d + half_length_B, gpu_data.offset_ref_gpu + sequences_per_stream, gpu_data.offset_query_gpu + sequences_per_stream ,
+                  gpu_data.ref_start_gpu + sequences_per_stream, gpu_data.ref_end_gpu + sequences_per_stream, gpu_data.query_start_gpu + sequences_per_stream, gpu_data.query_end_gpu + sequences_per_stream,
+                  gpu_data.scores_gpu + sequences_per_stream, openGap, extendGap, d_scoring_matrix, d_encoding_matrix);
+          cudaErrchk(cudaGetLastError());
+
+          asynch_mem_copies_dth(&gpu_data, alAbeg, alBbeg, top_scores_cpu, sequences_per_stream, sequences_stream_leftover, streams_cuda);
+
+                alAbeg += stringsPerIt;
+                alBbeg += stringsPerIt;
+                alAend += stringsPerIt;
+                alBend += stringsPerIt;
+                top_scores_cpu += stringsPerIt;
+		
+		 cudaStreamSynchronize (streams_cuda[0]);
+                 cudaStreamSynchronize (streams_cuda[1]);
+
+      }  // for iterations end here
+
+        auto end1  = NOW;
+        std::chrono::duration<double> diff2 = end1 - start2;
+        cudaErrchk(cudaFree(strA_d));
+        cudaErrchk(cudaFree(strB_d));
+        cudaFreeHost(offsetA_h);
+        cudaFreeHost(offsetB_h);
+        cudaFreeHost(strA);
+        cudaFreeHost(strB);
+
+        for(int i = 0; i < NSTREAMS; i++)
+          cudaStreamDestroy(streams_cuda[i]);
+
+        std::cout <<"cpu time:"<<total_time_cpu<<std::endl;
+        std::cout <<"packing time:"<<total_packing<<std::endl;
+        #pragma omp barrier
+    }  // paralle pragma ends
+    auto                          end  = NOW;
+    std::chrono::duration<double> diff = end - start;
+    std::cout << "Total Alignments:"<<totalAlignments<<"\n"<<"Max Reference Size:"<<maxContigSize<<"\n"<<"Max Query Size:"<<maxReadSize<<"\n" <<"Total Execution Time (seconds):"<< diff.count() <<std::endl;
+}// end of amino acids kernel
